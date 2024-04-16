@@ -1,9 +1,10 @@
-NanoStoryTeller
+# TiniestStoryTeller
 
-Goal: Create a state-of-the-art efficient storyteller.
+TiniestStoryTeller aims to demonstrate that efficient language learning models (LLM) can be developed and trained under significant resource constraints. This project is designed to run on standard desktop PCs or laptops, making it accessible for researchers and enthusiasts without access to high-end computational resources. Our initiative serves as a counterexample to the current trend of ever-larger models requiring substantial computational power.
 
-- Utilize the TinyStories dataset (Paper: https://arxiv.org/abs/2305.07759) for model training.
 
-- Enhance the model based on more efficient methods.
+## Features
 
-- Use the Transformer architecture as our model.
+- Custom LLM Training
+- Data Sampling 
+
