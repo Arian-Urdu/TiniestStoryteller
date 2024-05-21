@@ -1,5 +1,6 @@
 from ask_llm import ask_llm
 import datasets
+import ollama
 import numpy as np
 
 dataset = datasets.load_dataset("roneneldan/TinyStories", split="train")
@@ -16,6 +17,14 @@ def parse_ollama_output(output):
     scores = [int(score) for score in score_strings]
     return scores
 
+def ask_llm(system_prompt, datapoint):
+    msgs = [
+        {"role": "system", "content": system_prompt},
+        { "role": "user", "content": datapoint },
+    ]
+    output = ollama.chat(model="llama3", messages=msgs )
+
+    return(output['message']['content'])
 
 for i in range(0, len(dataset['text'])):
     ollama_output = ask_llm(prompt, dataset['text'][i])
