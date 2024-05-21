@@ -377,3 +377,7 @@ android/pytorch_android_torchvision/.cxx
 .arcconfig
 .stable_pyre_client
 .pyre_client
+
+# Files too large to push
+data/tiny_stories_all.txt
+out/*
