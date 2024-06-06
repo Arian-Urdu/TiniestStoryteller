@@ -219,7 +219,7 @@ try:
         loss.backward()
         optimizer.step()
 except:
-    pass
+    print("Please wait, genereating sample output with model... (this might take a while)")
 
 
 # Save the model and optimizer state dictionaries
@@ -239,7 +239,7 @@ print(output)
 disclaimer = """
 THIS FILE CONTAINS GPT GENERATED TEXT.
 """
-output_long = decode(m.generate(context, max_new_tokens=10000)[0].tolist())
+output_long = decode(m.generate(context, max_new_tokens=1000)[0].tolist())
 with open('./Tinystories.txt', 'w', encoding='utf-8') as f:
     f.write(disclaimer)
     f.write(output_long)
