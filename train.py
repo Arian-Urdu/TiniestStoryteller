@@ -3,15 +3,15 @@ import torch.nn as nn
 from torch.nn import functional as F
 
 # hyperparameters
-batch_size = 32 # how many independent sequences will we process in parallel?
-block_size = 64 # what is the maximum context length for predictions?
-max_iters = 5000
+batch_size = 64 # how many independent sequences will we process in parallel?
+block_size = 128 # what is the maximum context length for predictions?
+max_iters = 2000000
 eval_interval = 500
 eval_iters = 200
 learning_rate = 3e-4
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 n_embed = 64 # has to be divisible(without rem) by n_head, given head_size definition further below
-n_head = 4
+n_head = 8
 n_layer = 7
 dropout = 0.3
 # ------------
@@ -197,38 +197,49 @@ m = model.to(device)
 # create a PyTorch optimizer
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
-for iter in range(max_iters):
+try:
+    for iter in range(max_iters):
 
-    if (iter % 50 == 0):
-        print(iter)
-    # every once in a while evaluate the loss on train and val sets
-    # interesting that we're not printing loss every iter
-    # instead we're estimating the non noisy loss every eval_intervar
-    # only for printing purposes
-    if (iter % eval_interval == 0) or (iter == max_iters-1):
-        losses = estimate_loss()
-        print(f"step {iter}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+        if (iter % 50 == 0):
+            print(iter)
+        # every once in a while evaluate the loss on train and val sets
+        # interesting that we're not printing loss every iter
+        # instead we're estimating the non noisy loss every eval_intervar
+        # only for printing purposes
+        if (iter % eval_interval == 0) or (iter == max_iters-1):
+            losses = estimate_loss()
+            print(f"step {iter}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
 
-    # sample a batch of data
-    xb, yb = get_batch('train')
+        # sample a batch of data
+        xb, yb = get_batch('train')
 
-    # evaluate the loss
-    logits, loss = model(xb, yb)
-    optimizer.zero_grad(set_to_none=True)
-    loss.backward()
-    optimizer.step()
+        # evaluate the loss
+        logits, loss = model(xb, yb)
+        optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        optimizer.step()
+except:
+    print("Please wait, genereating sample output with model... (this might take a while)")
+
+
+# Save the model and optimizer state dictionaries
+torch.save({
+    'model_state_dict': model.state_dict(),
+    'optimizer_state_dict': optimizer.state_dict(),
+    'epoch': iter,
+    'loss': loss.item(),
+}, 'model_checkpoint.pth')
 
 # generate from the model
 context = torch.zeros((1, 1), dtype=torch.long, device=device)
 output = decode(m.generate(context, max_new_tokens=500)[0].tolist())
+print(output)
 
 # write longer output to file
 disclaimer = """
 THIS FILE CONTAINS GPT GENERATED TEXT.
 """
-output_long = decode(m.generate(context, max_new_tokens=10000)[0].tolist())
+output_long = decode(m.generate(context, max_new_tokens=1000)[0].tolist())
 with open('./Tinystories.txt', 'w', encoding='utf-8') as f:
     f.write(disclaimer)
     f.write(output_long)
-
-print(output)

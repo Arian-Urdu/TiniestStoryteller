@@ -377,3 +377,20 @@ android/pytorch_android_torchvision/.cxx
 .arcconfig
 .stable_pyre_client
 .pyre_client
+
+# Files too large to push
+data/tiny_stories_all.txt
+out/*
+data/TinyStories-train.txt
+
+# Preprocessing
+preprocessing/preprocessed_dataset/*
+
+ollama/*
+preprocessing/preprocessed_dataset/train/data-00000-of-00004.arrow
+preprocessing/preprocessed_dataset/train/data-00001-of-00004.arrow
+preprocessing/preprocessed_dataset/train/data-00002-of-00004.arrow
+preprocessing/preprocessed_dataset/train/data-00003-of-00004.arrow
+
+forbidden_indices.txt
+weights_0_0.pt
