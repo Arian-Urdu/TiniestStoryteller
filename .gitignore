@@ -381,3 +381,4 @@ android/pytorch_android_torchvision/.cxx
 # Files too large to push
 data/tiny_stories_all.txt
 out/*
+data/TinyStories-train.txt
