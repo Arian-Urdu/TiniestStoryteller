@@ -64,5 +64,5 @@ dataset = datasets.load_dataset("roneneldan/TinyStories")
 preprocessed_dataset = preprocess_dataset(dataset)
 
 
-dataset.save_to_disk("preprocessed_dataset")
+preprocessed_dataset.save_to_disk("preprocessed_dataset")
 print("Process complete - preprocessed dataset saved to disk")
