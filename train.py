@@ -1,10 +1,13 @@
 import os
+import time
 
 import datasets
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from transformers import PreTrainedTokenizerFast
+
+import wandb
 
 # hyperparameters
 batch_size = 64  # how many independent sequences will we process in parallel?
@@ -18,17 +21,30 @@ n_embed = 64  # has to be divisible(without rem) by n_head, given head_size defi
 n_head = 8
 n_layer = 7
 dropout = 0.3
+# wandb logging
+wandb_log = False # disabled by default
+wandb_project = 'TiniestStoryteller'
+wandb_run_name = 'run' + str(time.time())
+# config
+config_keys = [k for k,v in globals().items() if not k.startswith('_') and isinstance(v, (int, float, bool, str))]
+config = {k: globals()[k] for k in config_keys} # for logging
 # ------------
 
 print(f'Using device : {device}')
 # to use gpu/device, data and model params has to be moved to the device
 
-torch.manual_seed(1337)
+torch.manual_seed(42)
+
+
+
 
 dataset_path = os.path.join('preprocessing', 'preprocessed_dataset')
 dataset = datasets.load_from_disk(dataset_path)
 train_data = dataset['train']
 val_data = dataset['validation']
+
+# Smaller Dataset for testing
+# train_data = train_data.select(range(10000))
 
 tokenizer_path = os.path.join('tokenizers', 'bpe_tokenizer.json')
 tokenizer = PreTrainedTokenizerFast(
@@ -221,6 +237,9 @@ m = model.to(device)
 # create a PyTorch optimizer
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
+# create wandb run
+wandb.init(project=wandb_project, name=wandb_run_name, config=config)
+
 try:
     for iteration in range(max_iters):
 
@@ -234,7 +253,13 @@ try:
 
             losses = estimate_loss()
             print(f"step {iteration}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
-
+            # logging
+            wandb.log({
+                "iter": iteration,
+                "train/loss": losses['train'],
+                "val/loss": losses['val'],
+                #"lr": learning_rate,
+            })
         # sample a batch of data
         xb, yb = get_batch('train')
         # evaluate the loss

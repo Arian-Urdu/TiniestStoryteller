@@ -394,3 +394,7 @@ preprocessing/preprocessed_dataset/train/data-00003-of-00004.arrow
 
 forbidden_indices.txt
 weights_0_0.pt
+
+# Logging
+model_checkpoint.pth
+wandb/*
