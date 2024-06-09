@@ -13,7 +13,7 @@ import wandb
 batch_size = 64  # how many independent sequences will we process in parallel?
 block_size = 128  # what is the maximum context length for predictions?
 max_iters = 2000000
-eval_interval = 100
+eval_interval = 500
 eval_iters = 200 # was: 200
 learning_rate = 3e-4
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -33,7 +33,7 @@ config = {k: globals()[k] for k in config_keys} # for logging
 print(f'Using device : {device}')
 # to use gpu/device, data and model params has to be moved to the device
 
-torch.manual_seed(42)
+torch.manual_seed(1337)
 
 
 
@@ -42,9 +42,10 @@ dataset_path = os.path.join('preprocessing', 'preprocessed_dataset')
 dataset = datasets.load_from_disk(dataset_path)
 train_data = dataset['train']
 val_data = dataset['validation']
+print("Loaded dataset from disk")
 
 # Smaller Dataset for testing
-# train_data = train_data.select(range(10000))
+#train_data = train_data.select(range(10000))
 
 tokenizer_path = os.path.join('tokenizers', 'bpe_tokenizer.json')
 tokenizer = PreTrainedTokenizerFast(
@@ -53,6 +54,7 @@ tokenizer = PreTrainedTokenizerFast(
     eos_token = "<|endoftext|>"
 )
 vocab_size = tokenizer.vocab_size
+print(f"Loaded Tokenizer: {tokenizer}")
 
 def encode_batch(batch):
     encoded = tokenizer(batch["text"], padding=False, truncation=True, max_length=block_size)#, return_tensors="pt")
@@ -238,7 +240,8 @@ m = model.to(device)
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
 # create wandb run
-wandb.init(project=wandb_project, name=wandb_run_name, config=config)
+if wandb_log:
+    wandb.init(project=wandb_project, name=wandb_run_name, config=config)
 
 try:
     for iteration in range(max_iters):
@@ -254,12 +257,13 @@ try:
             losses = estimate_loss()
             print(f"step {iteration}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
             # logging
-            wandb.log({
-                "iter": iteration,
-                "train/loss": losses['train'],
-                "val/loss": losses['val'],
-                #"lr": learning_rate,
-            })
+            if wandb_log:
+                wandb.log({
+                    "iter": iteration,
+                    "train/loss": losses['train'],
+                    "val/loss": losses['val'],
+                    #"lr": learning_rate,
+                    })
         # sample a batch of data
         xb, yb = get_batch('train')
         # evaluate the loss
