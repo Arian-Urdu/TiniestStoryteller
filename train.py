@@ -17,7 +17,7 @@ block_size = 128  # what is the maximum context length for predictions?
 max_iters = 2000000
 eval_interval = 500
 eval_iters = 100 # was: 200
-learning_rate = 1e-3 # was: 3e-4
+learning_rate = 3e-4 # was: 3e-4
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 n_embed = 64 # has to be divisible(without rem) by n_head, given head_size definition further below
 n_head = 8
@@ -273,6 +273,7 @@ try:
 
         # evaluate the loss
         logits, loss = model(xb, yb)
+        optimizer.zero_grad(set_to_none=True)
         loss.backward()
         optimizer.step()
 except:
