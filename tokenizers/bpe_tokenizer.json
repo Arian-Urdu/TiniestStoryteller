@@ -5,7 +5,7 @@
   "added_tokens": [
     {
       "id": 0,
-      "content": "<|ebdiftext|>",
+      "content": "<|endoftext|>",
       "single_word": false,
       "lstrip": false,
       "rstrip": false,
@@ -41,7 +41,7 @@
     "fuse_unk": false,
     "byte_fallback": false,
     "vocab": {
-      "<|ebdiftext|>": 0,
+      "<|endoftext|>": 0,
       "!": 1,
       "\"": 2,
       "#": 3,

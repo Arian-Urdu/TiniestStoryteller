@@ -17,7 +17,7 @@ bpe_tokenizer = Tokenizer(models.BPE())
 bpe_tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space = False)
 
 
-trainer = trainers.BpeTrainer(vocab_size = 25000, special_tokens = ["<|ebdiftext|>"], min_frequency = 3)
+trainer = trainers.BpeTrainer(vocab_size = 25000, special_tokens = ["<|endoftext|>"], min_frequency = 3)
 
 bpe_tokenizer.train_from_iterator(get_training_corpus(), trainer = trainer)
 

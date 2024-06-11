@@ -387,10 +387,8 @@ data/TinyStories-train.txt
 preprocessing/preprocessed_dataset/*
 
 ollama/*
-preprocessing/preprocessed_dataset/train/data-00000-of-00004.arrow
-preprocessing/preprocessed_dataset/train/data-00001-of-00004.arrow
-preprocessing/preprocessed_dataset/train/data-00002-of-00004.arrow
-preprocessing/preprocessed_dataset/train/data-00003-of-00004.arrow
+
+outputs/*
 
 forbidden_indices.txt
 weights_0_0.pt
