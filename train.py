@@ -7,6 +7,8 @@ import torch.nn as nn
 from torch.nn import functional as F
 from transformers import PreTrainedTokenizerFast
 
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+
 import wandb
 
 # hyperparameters
@@ -14,10 +16,10 @@ batch_size = 64  # how many independent sequences will we process in parallel?
 block_size = 128  # what is the maximum context length for predictions?
 max_iters = 2000000
 eval_interval = 500
-eval_iters = 200 # was: 200
-learning_rate = 3e-4
+eval_iters = 100 # was: 200
+learning_rate = 3e-4 # was: 3e-4
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-n_embed = 64  # has to be divisible(without rem) by n_head, given head_size definition further below
+n_embed = 64 # has to be divisible(without rem) by n_head, given head_size definition further below
 n_head = 8
 n_layer = 7
 dropout = 0.3
@@ -86,7 +88,6 @@ def get_batch(split):
     x, y = x.to(device), y.to(device)
     return x, y
 
-
 # average out loss over multiple batches
 # because every single batch individually will be more or less lucky
 # iterate eval_iter times and average out the loss
@@ -105,7 +106,6 @@ def estimate_loss():
     model.train()
     return out
 
-
 # single head of self attention
 class Head(nn.Module):
     """ one head of self attention """
@@ -118,7 +118,7 @@ class Head(nn.Module):
         # in Pytorch convention a variable that's not a parameter of the model is called a buffer
         self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
         self.dropout = nn.Dropout(dropout)
-
+        
     def forward(self, x):
         B, T, C = x.shape
         # emit keys and queries for x
@@ -134,7 +134,6 @@ class Head(nn.Module):
         out = wei @ v  # (B, T, T) @ (B, T, hs) -> (B, T, hs)
         return out
 
-
 class MultiHeadAttention(nn.Module):
 
     def __init__(self, num_heads, head_size):
@@ -148,7 +147,6 @@ class MultiHeadAttention(nn.Module):
         out = self.proj(out)  # outcome of the linear layer to project back into the residual pathway
         out = self.dropout(out)  # final dropout
         return out
-
 
 class FeedForward(nn.Module):
     " simple linear layer followed by non linearity "
@@ -232,12 +230,13 @@ class LanguageModel(nn.Module):
             idx = torch.cat((idx, idx_next), dim=1)  # (B, T+1)
         return idx
 
-
 model = LanguageModel()
 m = model.to(device)
 
 # create a PyTorch optimizer
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
+
+scheduler = ReduceLROnPlateau(optimizer, 'min', patience=5, cooldown=5)
 
 # create wandb run
 if wandb_log:
@@ -264,14 +263,19 @@ try:
                     "val/loss": losses['val'],
                     #"lr": learning_rate,
                     })
+
+            scheduler.step(losses['train'])
+
+            print(f"Learning rate: {(scheduler.get_last_lr())[0]}")
+
         # sample a batch of data
         xb, yb = get_batch('train')
+
         # evaluate the loss
         logits, loss = model(xb, yb)
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         optimizer.step()
-        # print("iteration complete")
 except:
     print("Please wait, genereating sample output with model... (this might take a while)")
 
