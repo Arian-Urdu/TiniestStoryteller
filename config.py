@@ -6,8 +6,8 @@ import datasets
 import torch
 from transformers import PreTrainedTokenizerFast
 
-batch_size = 16  # how many independent sequences will we process in parallel?
-block_size = 256  # what is the maximum context length for predictions?
+batch_size = 64  # how many independent sequences will we process in parallel?
+block_size = 128  # what is the maximum context length for predictions?
 max_iters = 2000000
 num_epochs = 1
 eval_interval = 500
@@ -26,21 +26,23 @@ wandb_run_name = 'run' + str(time.time())
 config_keys = [k for k,v in globals().items() if not k.startswith('_') and isinstance(v, (int, float, bool, str))]
 config = {k: globals()[k] for k in config_keys} # for logging
 
-dataset_path = os.path.join('preprocessing', 'preprocessed_dataset')
+current_dir = os.path.dirname(os.path.realpath(__file__))
+
+dataset_path = os.path.join(current_dir, 'preprocessing', 'preprocessed_dataset')
 dataset = datasets.load_from_disk(dataset_path)
 train_data = dataset['train']
 val_data = dataset['validation']
 print("Loaded dataset from disk")
 
 # Smaller Dataset for testing
-train_data = train_data.select(range(200000))
+#train_data = train_data.select(range(10000))
 
-tokenizer_path = os.path.join('tokenizers', 'bpe_tokenizer.json')
+tokenizer_path = os.path.join(current_dir, 'tokenizers', 'bpe_tokenizer.json')
 tokenizer = PreTrainedTokenizerFast(
     tokenizer_file = tokenizer_path,
     bos_token = "<|endoftext|>",
     eos_token = "<|endoftext|>"
- )
-#tokenizer.add_special_tokens({'pad_token': '[PAD]'})
-tokenizer.pad_token = tokenizer.eos_token
-vocab_size = len(tokenizer)
+)
+vocab_size = tokenizer.vocab_size
+print(f"Loaded Tokenizer: {tokenizer}")
+

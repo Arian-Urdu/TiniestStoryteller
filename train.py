@@ -14,9 +14,8 @@ import wandb
 from config import batch_size, block_size, max_iters, eval_interval, eval_iters, learning_rate, device, wandb_log, wandb_project, wandb_run_name, config, train_data, val_data, tokenizer, vocab_size, num_epochs
 from transformer_model import LanguageModel
 
-
-# to use gpu/device, data and model params has to be moved to the device
 print(f'Using device : {device}')
+# to use gpu/device, data and model params has to be moved to the device
 
 
 # Encode Data with Tokenizer
@@ -28,6 +27,7 @@ print(f"Loaded Tokenizer with size: {vocab_size}")
 
 train_data = train_data.map(encode_batch, batched = True)
 val_data = val_data.map(encode_batch, batched = True)
+
 
 train_data = train_data["input_ids"]
 val_data = val_data["input_ids"]
@@ -52,7 +52,7 @@ class TinyDataset_Preprocessed(torch.utils.data.Dataset):
     input_pad = torch.nn.utils.rnn.pad_sequence([item['input'] for item in batch], batch_first=True, padding_value=0)
     label_pad = torch.nn.utils.rnn.pad_sequence([item['label'] for item in batch], batch_first=True, padding_value=0)
     return { 'input': input_pad, 'label': label_pad }
-  
+
 train_dataset = TinyDataset_Preprocessed(train_data, tokenizer)
 print('Loaded Pytorch train_dataset with length:', len(train_dataset))
 #print('Check first input-label pair:', train_dataset[0])
@@ -79,7 +79,6 @@ Traing Loop
 def estimate_loss():
     out = {}
     model.eval()
-    
     for split in ['train', 'val']:
         losses = torch.zeros(eval_iters)
 
@@ -101,6 +100,7 @@ m = model.to(device)
 
 # create a PyTorch optimizer with LR scheduler
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
+
 scheduler = ReduceLROnPlateau(optimizer, 'min', patience=5, cooldown=5)
 
 # progress bar via tqdm
@@ -130,8 +130,9 @@ for epoch in range(num_epochs):
                         "lr": learning_rate,
                         })
 
-                scheduler.step(losses['train'])
-                print(f"Learning rate: {(scheduler.get_last_lr())[0]}")
+            scheduler.step(losses['train'])
+
+            print(f"Learning rate: {(scheduler.get_last_lr())[0]}")
 
             # sample a batch of data
             xb = batch["input"]
@@ -164,7 +165,8 @@ torch.save({
     'optimizer_state_dict': optimizer.state_dict(),
     'epoch': iteration,
     'loss': loss.item(),
-    }, 
+    'learning rate': scheduler.get_last_lr()[0],
+    },
 ('./output/model_checkpoint_' + today + '.pth'))
 
 # Generate from the model
