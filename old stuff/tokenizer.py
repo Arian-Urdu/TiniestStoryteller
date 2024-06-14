@@ -28,7 +28,7 @@ def build_vocab(filepath, tokenizer):
             for string_ in f:
                 counter.update(tokenizer(string_))
         vocab_obj = vocab(counter, specials=['<unk>', '<pad>', '<bos>', '<eos>'])
-        torch.save(vocab_obj, 'out/vocab_obj.pth')
+        torch.save(vocab_obj, 'output/vocab_obj.pth')
         return vocab_obj
 
 class BasicEnglishTokenizer:

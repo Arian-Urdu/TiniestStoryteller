@@ -1,4 +1,4 @@
-#%%
+
 import torch
 import tokenizer
 import datasets
@@ -23,13 +23,12 @@ class TinyDataset(torch.utils.data.Dataset):
     label_pad = torch.nn.utils.rnn.pad_sequence([item['label'] for item in batch], batch_first=True, padding_value=0)
     return { 'input': input_pad, 'label': label_pad }
 
-#%%
+
 if __name__ == '__main__':
-  ds = TinyDataset()
-  tk = tokenizer.BasicEnglishTokenizer()
-  print('ds.ds', ds.ds)
-  print('len(ds)', len(ds))
-  print('ds[362]', ds[362])
-  entry_362 = ds[362]['label']
-  print(tk.decode(entry_362.tolist()))
-# %%
+  dataset = TinyDataset()
+  tokenizer1 = tokenizer.BasicEnglishTokenizer()
+  print('ds.ds', dataset.ds)
+  print('len(ds)', len(dataset))
+  print('ds[362]', dataset[362])
+  entry_362 = dataset[362]['label']
+  print(tokenizer1.decode(entry_362.tolist()))
