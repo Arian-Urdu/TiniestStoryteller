@@ -1,47 +1,76 @@
+import os
+from datetime import datetime
+import numpy as np
+
 import torch
-
+import datasets
+from transformers import PreTrainedTokenizerFast
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.utils.data import DataLoader
 
+from tqdm.auto import tqdm
 import wandb
 
-from config import batch_size, block_size, max_iters, eval_interval, eval_iters, learning_rate, device, wandb_log, wandb_project, wandb_run_name, config, train_data, val_data, tokenizer
+from config import batch_size, block_size, max_iters, eval_interval, eval_iters, learning_rate, device, wandb_log, wandb_project, wandb_run_name, config, train_data, val_data, tokenizer, vocab_size, num_epochs
 from transformer_model import LanguageModel
 
-print(f'Using device : {device}')
+
 # to use gpu/device, data and model params has to be moved to the device
+print(f'Using device : {device}')
 
-torch.manual_seed(1337)
 
-def encode_batch(batch):
-    encoded = tokenizer(batch["text"], padding=False, truncation=True, max_length=block_size)#, return_tensors="pt")
+# Encode Data with Tokenizer
+def encode_batch(data):
+    encoded = tokenizer(data["text"], padding=True, truncation=True, max_length=block_size)#, return_tensors="pt")
     return encoded
+
+print(f"Loaded Tokenizer with size: {vocab_size}")
 
 train_data = train_data.map(encode_batch, batched = True)
 val_data = val_data.map(encode_batch, batched = True)
 
-
 train_data = train_data["input_ids"]
 val_data = val_data["input_ids"]
 
-# flatten lists (wahrscheinlich unsauber)
-train_data = [encoding for encoded_story in train_data for encoding in encoded_story]
-val_data = [encoding for encoded_story in val_data for encoding in encoded_story]
+
+# Create Pytorch Dataset
+class TinyDataset_Preprocessed(torch.utils.data.Dataset):
+  def __init__(self, data, tokenizer):
+    self.data = data
+    self.tokenizer = tokenizer
+
+  def __len__(self):
+    return len(self.data)
+
+  def __getitem__(self, idx):
+    row = self.data[idx]
+    input = row
+    label = row[1:] + [self.tokenizer.eos_token_id]
+    return { 'input': torch.tensor(input), 'label': torch.tensor(label) }
+
+  def collate_fn(self, batch):
+    input_pad = torch.nn.utils.rnn.pad_sequence([item['input'] for item in batch], batch_first=True, padding_value=0)
+    label_pad = torch.nn.utils.rnn.pad_sequence([item['label'] for item in batch], batch_first=True, padding_value=0)
+    return { 'input': input_pad, 'label': label_pad }
+  
+train_dataset = TinyDataset_Preprocessed(train_data, tokenizer)
+print('Loaded Pytorch train_dataset with length:', len(train_dataset))
+#print('Check first input-label pair:', train_dataset[0])
+
+val_dataset = TinyDataset_Preprocessed(val_data, tokenizer)
+print('Loaded Pytorch val_dataset with length:', len(val_dataset))
+#print('Check first input-label pair:', val_dataset[0])
+
+# Create DataLoaders
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
+val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
 
-train_data = torch.tensor(train_data, dtype = torch.long)
-val_data = torch.tensor(val_data, dtype = torch.long)
 
-
-# data loading
-def get_batch(split):
-    # generate a small batch of data of inputs x and targets y
-    data = train_data if split == 'train' else val_data
-    ix = torch.randint(len(data) - block_size, (batch_size,))
-    x = torch.stack([data[i:i + block_size] for i in ix])
-    y = torch.stack([data[i + 1:i + block_size + 1] for i in ix])
-    x, y = x.to(device), y.to(device)
-    return x, y
-
+""" 
+Traing Loop
+----------------------------------------------------------------
+"""
 # average out loss over multiple batches
 # because every single batch individually will be more or less lucky
 # iterate eval_iter times and average out the loss
@@ -50,66 +79,84 @@ def get_batch(split):
 def estimate_loss():
     out = {}
     model.eval()
+    
     for split in ['train', 'val']:
         losses = torch.zeros(eval_iters)
-        for k in range(eval_iters):
-            X, Y = get_batch(split)
+
+        for k, batch in enumerate(val_loader):
+            if k > (eval_iters - 1):
+                break
+            X = batch["input"]
+            Y = batch["label"]
+            X, Y = X.to(device), Y.to(device)
             logits, loss = model(X, Y)
             losses[k] = loss.item()
         out[split] = losses.mean()
     model.train()
     return out
 
-
+# Initialize model and move to device
 model = LanguageModel()
 m = model.to(device)
 
-# create a PyTorch optimizer
+# create a PyTorch optimizer with LR scheduler
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
-
 scheduler = ReduceLROnPlateau(optimizer, 'min', patience=5, cooldown=5)
+
+# progress bar via tqdm
+num_training_steps = num_epochs * len(train_loader)
+progress_bar = tqdm(range(num_training_steps))
 
 # create wandb run
 if wandb_log:
     wandb.init(project=wandb_project, name=wandb_run_name, config=config)
 
-try:
-    for iteration in range(max_iters):
+for epoch in range(num_epochs):
+    try:
+        for iteration, batch in enumerate(train_loader):
+            # every once in a while evaluate the loss on train and val sets
+            # interesting that we're not printing loss every iter
+            # instead we're estimating the non noisy loss every eval_intervar
+            # only for printing purposes
+            if (iteration % eval_interval == 0) or (iteration == max_iters - 1):
+                losses = estimate_loss()
+                print(f"step {iteration}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+                # logging
+                if wandb_log:
+                    wandb.log({
+                        "iter": iteration,
+                        "train/loss": losses['train'],
+                        "val/loss": losses['val'],
+                        "lr": learning_rate,
+                        })
 
-        if (iteration % 50 == 0):
-            print(iteration)
-        # every once in a while evaluate the loss on train and val sets
-        # interesting that we're not printing loss every iter
-        # instead we're estimating the non noisy loss every eval_intervar
-        # only for printing purposes
-        if (iteration % eval_interval == 0) or (iteration == max_iters - 1):
+                scheduler.step(losses['train'])
+                print(f"Learning rate: {(scheduler.get_last_lr())[0]}")
 
-            losses = estimate_loss()
-            print(f"step {iteration}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
-            # logging
-            if wandb_log:
-                wandb.log({
-                    "iter": iteration,
-                    "train/loss": losses['train'],
-                    "val/loss": losses['val'],
-                    #"lr": learning_rate,
-                    })
+            # sample a batch of data
+            xb = batch["input"]
+            yb = batch["label"]
+            xb, yb = xb.to(device), yb.to(device)
 
-            scheduler.step(losses['train'])
+            # evaluate the loss
+            logits, loss = model(xb, yb)
+            optimizer.zero_grad(set_to_none=True)
+            loss.backward()
+            optimizer.step()
+            progress_bar.update(1)
 
-            print(f"Learning rate: {(scheduler.get_last_lr())[0]}")
+    except:
+       pass
+""" 
+----------------------------------------------------------------
+"""
 
-        # sample a batch of data
-        xb, yb = get_batch('train')
+# Training done
+print("Please wait, genereating sample output with model... (this might take a while)")
 
 
-        # evaluate the loss
-        logits, loss = model(xb, yb)
-        optimizer.zero_grad(set_to_none=True)
-        loss.backward()
-        optimizer.step()
-except:
-    print("Please wait, genereating sample output with model... (this might take a while)")
+# current time
+today = datetime.now().strftime('%Y-%m-%d-%H:%M')
 
 # Save the model and optimizer state dictionaries
 torch.save({
@@ -117,18 +164,19 @@ torch.save({
     'optimizer_state_dict': optimizer.state_dict(),
     'epoch': iteration,
     'loss': loss.item(),
-}, 'model_checkpoint.pth')
+    }, 
+('./output/model_checkpoint_' + today + '.pth'))
 
-# generate from the model
+# Generate from the model
 context = torch.zeros((1, 1), dtype=torch.long, device=device)
 output = tokenizer.decode(m.generate(context, max_new_tokens=500)[0].tolist())
 print(output)
 
-# write longer output to file
+# Write output to file
 disclaimer = """
-THIS FILE CONTAINS GPT GENERATED TEXT.
+OUTPUT FROM MODEL:
 """
-# output_long = tokenizer.decode(m.generate(context, max_new_tokens=1000)[0].tolist())
-with open('./Tinystories.txt', 'w', encoding='utf-8') as f:
+with open(('./output/Tinystories_' + today + '.txt'), 'w', encoding='utf-8') as f:
     f.write(disclaimer)
+    f.write("\n")
     f.write(output)

@@ -6,9 +6,10 @@ import datasets
 import torch
 from transformers import PreTrainedTokenizerFast
 
-batch_size = 64  # how many independent sequences will we process in parallel?
-block_size = 128  # what is the maximum context length for predictions?
+batch_size = 16  # how many independent sequences will we process in parallel?
+block_size = 256  # what is the maximum context length for predictions?
 max_iters = 2000000
+num_epochs = 1
 eval_interval = 500
 eval_iters = 100 # was: 200
 learning_rate = 3e-4 # was: 3e-4
@@ -32,13 +33,14 @@ val_data = dataset['validation']
 print("Loaded dataset from disk")
 
 # Smaller Dataset for testing
-#train_data = train_data.select(range(10000))
+train_data = train_data.select(range(200000))
 
 tokenizer_path = os.path.join('tokenizers', 'bpe_tokenizer.json')
 tokenizer = PreTrainedTokenizerFast(
     tokenizer_file = tokenizer_path,
     bos_token = "<|endoftext|>",
     eos_token = "<|endoftext|>"
-)
-vocab_size = tokenizer.vocab_size
-print(f"Loaded Tokenizer: {tokenizer}")
+ )
+#tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+tokenizer.pad_token = tokenizer.eos_token
+vocab_size = len(tokenizer)
