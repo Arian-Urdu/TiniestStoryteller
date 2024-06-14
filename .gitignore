@@ -388,6 +388,7 @@ preprocessing/preprocessed_dataset/*
 
 ollama/*
 
+output/*
 outputs/*
 
 forbidden_indices.txt
