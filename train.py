@@ -165,7 +165,7 @@ torch.save({
     'epoch': iteration,
     'loss': loss.item(),
     }, 
-('./output/model_checkpoint_' + today + '.pth'))
+(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output', 'model_checkpoint_' + today + '.pth')))
 
 # Generate from the model
 context = torch.zeros((1, 1), dtype=torch.long, device=device)
@@ -176,7 +176,7 @@ print(output)
 disclaimer = """
 OUTPUT FROM MODEL:
 """
-with open(('./output/Tinystories_' + today + '.txt'), 'w', encoding='utf-8') as f:
+with open((os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output', 'Tinystories_' + today + '.txt')), 'w', encoding='utf-8') as f:
     f.write(disclaimer)
     f.write("\n")
     f.write(output)
