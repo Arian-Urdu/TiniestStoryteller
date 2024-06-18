@@ -30,8 +30,9 @@ print(f"Loaded Tokenizer with size: {vocab_size}")
 train_data = train_data.map(encode_batch, batched=True)
 val_data = val_data.map(encode_batch, batched=True)
 
-train_data = train_data["input_ids"]
-val_data = val_data["input_ids"]
+print(train_data[0])
+
+
 
 
 # Create Pytorch Dataset
@@ -44,10 +45,10 @@ class TinyDataset_Preprocessed(torch.utils.data.Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        row = self.data[idx]
+        row = self.data["input_ids"][idx]
         input = row
         label = row[1:] + [self.tokenizer.eos_token_id]
-        return {'input': torch.tensor(input), 'label': torch.tensor(label)}
+        return {'input': torch.tensor(input), 'mask': torch.tensor(self.data["attention_mask"][idx]), 'label': torch.tensor(label)}
 
     def collate_fn(self, batch):
         input_pad = torch.nn.utils.rnn.pad_sequence([item['input'] for item in batch], batch_first=True,
@@ -74,7 +75,6 @@ Traing Loop
 ----------------------------------------------------------------
 """
 
-
 # average out loss over multiple batches
 # because every single batch individually will be more or less lucky
 # iterate eval_iter times and average out the loss
@@ -92,8 +92,10 @@ def estimate_loss():
                 break
             X = batch["input"]
             Y = batch["label"]
-            X, Y = X.to(device), Y.to(device)
-            logits, loss = model(X, Y)
+            X, Y = X.to(device), Y.to(device)   
+            attention_mask = (X != 0).unsqueeze(1)  # Shape (B, 1, 1, T)
+            attention_mask = attention_mask.to(device)
+            logits, loss = model(X, attention_mask, Y)
             losses[k] = loss.item()
         out[split] = losses.mean()
     model.train()
@@ -117,7 +119,7 @@ if wandb_log:
     wandb.init(project=wandb_project, name=wandb_run_name, config=config)
 
 for epoch in range(num_epochs):
-    try:
+
         for iteration, batch in enumerate(train_loader):
             # every once in a while evaluate the loss on train and val sets
             # interesting that we're not printing loss every iter
@@ -143,15 +145,18 @@ for epoch in range(num_epochs):
             yb = batch["label"]
             xb, yb = xb.to(device), yb.to(device)
 
+             # Create the attention mask
+            attention_mask = (xb != 0).unsqueeze(1)  # Shape (B, 1, 1, T)
+            attention_mask = attention_mask.to(device)
+
             # evaluate the loss
-            logits, loss = model(xb, yb)
+            logits, loss = model(xb, attention_mask, yb)
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             optimizer.step()
             progress_bar.update(1)
-
-    except:
-        pass
+    
+    
 """ 
 ----------------------------------------------------------------
 """
