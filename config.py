@@ -6,12 +6,12 @@ import datasets
 import torch
 from transformers import PreTrainedTokenizerFast
 
-batch_size = 2  # how many independent sequences will we process in parallel?
+batch_size = 16  # how many independent sequences will we process in parallel?
 block_size = 128  # what is the maximum context length for predictions?
 max_iters = 2000000
 num_epochs = 1
-eval_interval = 500
-eval_iters = 100 # was: 200
+eval_interval = 50
+eval_iters = 5 # was: 200
 learning_rate = 3e-4 # was: 3e-4
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 n_embed = 64 # has to be divisible(without rem) by n_head, given head_size definition further below
