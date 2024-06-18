@@ -18,13 +18,17 @@ class Head(nn.Module):
         self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x):
+    def forward(self, x, mask=None):
         B, T, C = x.shape
         # emit keys and queries for x
         k = self.key(x)  # (B, T, hs)
         q = self.query(x)  # (B, T, hs)
         # compute attention
         wei = q @ k.transpose(-2, -1) * k.shape[-1] ** -0.5  # (B, T, hs) @ (B, hs, T) -> (B, T, T)
+
+        if mask is not None:
+            wei = wei.masked_fill(mask[:, :T, :T] == 0, float('-inf'))
+
         wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))  # (B, T, T)
         wei = F.softmax(wei, dim=-1)  # (B, T, T)
         wei = self.dropout(wei)  # dropout some of the affinities
@@ -42,8 +46,8 @@ class MultiHeadAttention(nn.Module):
         self.proj = nn.Linear(n_embed, n_embed)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x):
-        out = torch.cat([h(x) for h in self.heads], dim=-1)
+    def forward(self, x, mask=None):
+        out = torch.cat([h(x, mask) for h in self.heads], dim=-1)
         out = self.proj(out)  # outcome of the linear layer to project back into the residual pathway
         out = self.dropout(out)  # final dropout
         return out
@@ -76,8 +80,8 @@ class Block(nn.Module):
         self.ln1 = nn.LayerNorm(n_embed)
         self.ln2 = nn.LayerNorm(n_embed)
 
-    def forward(self, x):
-        x = x + self.sa(self.ln1(x))
+    def forward(self, x, mask=None):
+        x = x + self.sa(self.ln1(x), mask)
         x = x + self.ffwd(self.ln2(x))
         return x
 
@@ -89,18 +93,23 @@ class LanguageModel(nn.Module):
         # each token directly reads off the logits for the next token from a lookup table
         self.token_embedding_table = nn.Embedding(vocab_size, n_embed)
         self.position_embedding_table = nn.Embedding(block_size, n_embed)
-        self.blocks = nn.Sequential(*[Block(n_embed, n_head=n_head) for _ in range(n_layer)])
+        #self.blocks = nn.Sequential(*[Block(n_embed, n_head=n_head) for _ in range(n_layer)])
+        self.blocks = nn.ModuleList([Block(n_embed, n_head=n_head) for _ in range(n_layer)])
+        self.ln_f = nn.LayerNorm(n_embed)
         self.ln_f = nn.LayerNorm(n_embed)
         self.lm_head = nn.Linear(n_embed, vocab_size)
 
-    def forward(self, idx, targets=None):
+    def forward(self, idx, mask=None, targets=None):
         B, T = idx.shape
 
         # idx and targets are both (B,T) tensor of integers
         token_emb = self.token_embedding_table(idx)  # (B,T,C)
         pos_emb = self.position_embedding_table(torch.arange(T, device=device))  # (T, C)
         x = token_emb + pos_emb  # (B, T, C)
-        x = self.blocks(x)
+        #x = self.blocks(x,mask)
+        for block in self.blocks:
+            x = block(x, mask)
+
         x = self.ln_f(x)
         logits = self.lm_head(x)  # (B,T,vocab_size)
 
