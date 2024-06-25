@@ -12,7 +12,7 @@ from tqdm.auto import tqdm
 import wandb
 
 from config import batch_size, block_size, max_iters, eval_interval, eval_iters, learning_rate, device, wandb_log, \
-    wandb_project, wandb_run_name, config, train_data, val_data, tokenizer, vocab_size, num_epochs
+    wandb_project, wandb_run_name, config, train_data, val_data, tokenizer, vocab_size, num_epochs, gradient_accumulation_steps
 from transformer_model import LanguageModel
 
 # to use gpu/device, data and model params has to be moved to the device
@@ -30,7 +30,7 @@ print(f"Loaded Tokenizer with size: {vocab_size}")
 train_data = train_data.map(encode_batch, batched=True)
 val_data = val_data.map(encode_batch, batched=True)
 
-print(train_data[0])
+# print(train_data[0])
 
 
 mask_data = train_data["attention_mask"]
@@ -126,11 +126,12 @@ scheduler = ReduceLROnPlateau(optimizer, 'min', patience=5, cooldown=5)
 if wandb_log:
     wandb.init(project=wandb_project, name=wandb_run_name, config=config)
 try:
+    accumulated_loss = 0
     for epoch in range(num_epochs):
         print("Currently on epoch number", epoch, "out of", num_epochs)
         # progress bar via tqdm
         num_training_steps = len(train_loader)
-        progress_bar = tqdm(range(num_training_steps))
+        # progress_bar = tqdm(range(num_training_steps))
         for iteration, batch in enumerate(train_loader):
             # every once in a while evaluate the loss on train and val sets
             # interesting that we're not printing loss every iter
@@ -149,7 +150,7 @@ try:
                     })
 
                 scheduler.step(losses['train'])
-                print(f"Learning rate: {(scheduler.get_last_lr())[0]}")
+                # print(f"Learning rate: {(scheduler._last_lr())[0]}")
 
             # sample a batch of data
             xb = batch["input"]
@@ -162,10 +163,20 @@ try:
 
             # evaluate the loss
             logits, loss = model(xb, attention_mask, yb)
-            optimizer.zero_grad(set_to_none=True)
+            accumulated_loss += loss.item()
+
+            # Normalize the loss based on gradient_accumulation_steps and backward propagate
+            loss = loss / gradient_accumulation_steps
             loss.backward()
-            optimizer.step()
-            progress_bar.update(1)
+
+            # Update optimizer step after accumulating enough gradients
+            if (iteration + 1) % gradient_accumulation_steps == 0:
+                optimizer.step()
+                optimizer.zero_grad(set_to_none=True)  # Clear the gradients
+                # Optional: print accumulated loss
+                # print(f"Accumulated loss after {gradient_accumulation_steps} steps: {accumulated_loss:.4f}")
+                accumulated_loss = 0  # Reset accumulated loss
+            # progress_bar.update(1)
 
 except:
     pass
