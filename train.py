@@ -7,6 +7,7 @@ import datasets
 from transformers import PreTrainedTokenizerFast
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
+from accelerate import Accelerator
 
 from tqdm.auto import tqdm
 import wandb
@@ -120,19 +121,22 @@ m = model.to(device)
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 scheduler = ReduceLROnPlateau(optimizer, 'min', patience=5, cooldown=5)
 
+accelerator = Accelerator(gradient_accumulation_steps)
 
+model, optimizer, train_loader = accelerator.prepare(model, optimizer, train_loader)
 
 # create wandb run
 if wandb_log:
     wandb.init(project=wandb_project, name=wandb_run_name, config=config)
-try:
-    accumulated_loss = 0
-    for epoch in range(num_epochs):
-        print("Currently on epoch number", epoch, "out of", num_epochs)
-        # progress bar via tqdm
-        num_training_steps = len(train_loader)
-        # progress_bar = tqdm(range(num_training_steps))
-        for iteration, batch in enumerate(train_loader):
+# try:
+for epoch in range(num_epochs):
+    print("Currently on epoch number", epoch, "out of", num_epochs)
+    # progress bar via tqdm
+    num_training_steps = len(train_loader)
+    # progress_bar = tqdm(range(num_training_steps))
+    # for iteration, batch in enumerate(train_loader):
+    for iteration, batch in enumerate(train_loader):
+        with accelerator.accumulate(model):
             # every once in a while evaluate the loss on train and val sets
             # interesting that we're not printing loss every iter
             # instead we're estimating the non noisy loss every eval_intervar
@@ -155,7 +159,7 @@ try:
             # sample a batch of data
             xb = batch["input"]
             yb = batch["label"]
-            xb, yb = xb.to(device), yb.to(device)
+            # xb, yb = xb.to(device), yb.to(device)
 
                 # Create the attention mask
             attention_mask = (xb != 0).unsqueeze(1).expand(-1, xb.size(1), -1)  # Shape (B, T, T)
@@ -163,23 +167,16 @@ try:
 
             # evaluate the loss
             logits, loss = model(xb, attention_mask, yb)
-            accumulated_loss += loss.item()
 
-            # Normalize the loss based on gradient_accumulation_steps and backward propagate
-            loss = loss / gradient_accumulation_steps
-            loss.backward()
+            accelerator.backward(loss)
 
-            # Update optimizer step after accumulating enough gradients
-            if (iteration + 1) % gradient_accumulation_steps == 0:
-                optimizer.step()
-                optimizer.zero_grad(set_to_none=True)  # Clear the gradients
-                # Optional: print accumulated loss
-                # print(f"Accumulated loss after {gradient_accumulation_steps} steps: {accumulated_loss:.4f}")
-                accumulated_loss = 0  # Reset accumulated loss
+            optimizer.step()
+            # scheduler.step()
+            optimizer.zero_grad(set_to_none=True)
             # progress_bar.update(1)
 
-except:
-    pass
+# except:
+#     pass
 
 """ 
 ----------------------------------------------------------------
