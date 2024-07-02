@@ -22,6 +22,7 @@ dropout = 0.3
 wandb_log = True # disabled by default
 wandb_project = 'TiniestStoryteller'
 wandb_run_name = 'run' + str(time.time())
+gradient_accumulation_steps = 2
 # config
 config_keys = [k for k,v in globals().items() if not k.startswith('_') and isinstance(v, (int, float, bool, str))]
 config = {k: globals()[k] for k in config_keys} # for logging
@@ -35,9 +36,9 @@ val_data = dataset['validation']
 print("Loaded dataset from disk")
 
 # Smaller Dataset for testing
-train_data = train_data.select(range(200000))
+# train_data = train_data.select(range(200000))
 
-tokenizer_path = os.path.join(current_dir, 'tokenizers', 'bpe_tokenizer.json')
+tokenizer_path = os.path.join(current_dir, 'tokenizers', 'bpe_tokenizer_2048.json')
 tokenizer = PreTrainedTokenizerFast(
     tokenizer_file = tokenizer_path,
     bos_token = "<|endoftext|>",

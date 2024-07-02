@@ -1,5 +1,8 @@
 import random
 import os
+
+import torch
+
 from config import tokenizer, device
 from load_checkpoint import model
 import numpy as np
@@ -8,7 +11,7 @@ number_prompts = 10
 
 print("Starting evaluation\n"
       "-------------------------------\n"
-      "See the prompt and give the generated story a score from 1.0 to 10.0.\n\n")
+      "See the prompt and give the generated story a score from 1 to 3.\n\n")
 
 scores = []
 
@@ -33,7 +36,9 @@ for i in indices:
 
     # let model generate
     input_ids = tokenizer.encode(prompt, return_tensors='pt').to(device)
-    model_response = tokenizer.decode(model.generate(input_ids, max_new_tokens=10)[0].tolist())
+    with torch.no_grad():
+        model_response = model.generate(input_ids, max_new_tokens=10)
+    model_response = tokenizer.decode(model_response[0].tolist())
 
     # remove prompt from response
     model_response = model_response[len(prompt) + 1:]

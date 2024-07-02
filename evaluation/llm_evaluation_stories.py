@@ -1,7 +1,13 @@
+import torch
 from openai import OpenAI
 import random
 import os
-from config import tokenizer, device
+try:
+    from config import tokenizer, device
+except ImportError:
+    import sys
+    sys.path.append(sys.path[0] + '/..')
+    from config import tokenizer, device
 from load_checkpoint import model
 import numpy as np
 
@@ -10,12 +16,13 @@ client = OpenAI(
     api_key = "ollama",
 )
 
-system_prompt = ("Please evaluate the following story based on the following five categories: "
-                 "Grammar, Creativity, Consistency, Originality, and Vocabulary. "
-                 "Each category should be scored with an integer between 1 and 10, where 10 is the highest. "
-                 "The output should be in the format of five numbers separated by colons, for example, '5:8:3:10:4'. "
+system_prompt = ("Please evaluate the following story based on the following three categories: "
+                 "Grammar, Spelling, and Consistency. "
+                 "Each category should be scored with an integer between 1 and 3, 1 being the worst and 3 the best. "
+                 "When rating a category, disregard all other errors except for those relating to that category. "
+                 "The output should be in the format of three numbers separated by colons, for example, '2:1:3'. "
                  "Output the scores only in the following format: "
-                 "<Grammar score>:<Creativity score>:<Consistency score>:<Originality score>:<Vocabulary score>. "
+                 "<Grammar score>:<Spelling score>:<Consistency score>. "
                  "Output nothing but the scores, no additional text or explanation.")
 
 number_prompts = 10
@@ -48,7 +55,9 @@ for i in indices:
 
     # let model generate
     input_ids = tokenizer.encode(prompt, return_tensors='pt').to(device)
-    model_response = tokenizer.decode(model.generate(input_ids, max_new_tokens=10)[0].tolist())
+    with torch.no_grad():
+        model_response = model.generate(input_ids, max_new_tokens=10)
+    model_response = tokenizer.decode(model_response[0].tolist())
 
     # remove prompt from response
     model_response = model_response[len(prompt) + 1:]
@@ -56,7 +65,7 @@ for i in indices:
     model_response = cut_after_last_full_stop(model_response)
 
     # prepare prompt
-    print(f"Prompt: {system_prompt}")
+    # print(f"Prompt: {system_prompt}")
     msgs = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": model_response},
