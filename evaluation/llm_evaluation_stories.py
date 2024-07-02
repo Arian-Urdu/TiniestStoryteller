@@ -8,7 +8,7 @@ except ImportError:
     import sys
     sys.path.append(sys.path[0] + '/..')
     from config import tokenizer, device
-from load_checkpoint import model
+from evaluation.load_checkpoint import load_model
 import numpy as np
 
 client = OpenAI(
@@ -16,14 +16,7 @@ client = OpenAI(
     api_key = "ollama",
 )
 
-system_prompt = ("Please evaluate the following story based on the following three categories: "
-                 "Grammar, Spelling, and Consistency. "
-                 "Each category should be scored with an integer between 1 and 3, 1 being the worst and 3 the best. "
-                 "When rating a category, disregard all other errors except for those relating to that category. "
-                 "The output should be in the format of three numbers separated by colons, for example, '2:1:3'. "
-                 "Output the scores only in the following format: "
-                 "<Grammar score>:<Spelling score>:<Consistency score>. "
-                 "Output nothing but the scores, no additional text or explanation.")
+
 
 number_prompts = 10
 
@@ -49,34 +42,48 @@ def parse_ollama_output(output):
     scores = [float(score) for score in score_strings]
     return scores
 
-for i in indices:
-    # get random prompt from file
-    prompt = prompts[i]
+def evaluate_model_stories(model = None, modelpath = ""):
 
-    # let model generate
-    input_ids = tokenizer.encode(prompt, return_tensors='pt').to(device)
-    with torch.no_grad():
-        model_response = model.generate(input_ids, max_new_tokens=10)
-    model_response = tokenizer.decode(model_response[0].tolist())
+    system_prompt = ("Please evaluate the following story based on the following three categories: "
+                     "Grammar, Spelling, and Consistency. "
+                     "Each category should be scored with an integer between 1 and 3, 1 being the worst and 3 the best. "
+                     "When rating a category, disregard all other errors except for those relating to that category. "
+                     "The output should be in the format of three numbers separated by colons, for example, '2:1:3'. "
+                     "Don't output any numbers below 1 or greater than 3! "
+                     "Output the scores only in the following format: "
+                     "<Grammar score>:<Spelling score>:<Consistency score>. "
+                     "Output nothing but the scores, no additional text or explanation.")
 
-    # remove prompt from response
-    model_response = model_response[len(prompt) + 1:]
-    # cut off after first full stop
-    model_response = cut_after_last_full_stop(model_response)
+    if model == None:
+        if modelpath == "":
+            raise Exception("Invalid arguments")
+        model = load_model(modelpath)
+    for i in indices:
+        # get random prompt from file
+        prompt = prompts[i]
 
-    # prepare prompt
-    # print(f"Prompt: {system_prompt}")
-    msgs = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": model_response},
-    ]
+        # let model generate
+        input_ids = tokenizer.encode(prompt, return_tensors='pt').to(device)
+        with torch.no_grad():
+            model_response = model.generate(input_ids, max_new_tokens=10)
+        model_response = tokenizer.decode(model_response[0].tolist())
 
-    # let llm score output
-    llm_response = client.chat.completions.create(model="llama3", messages=msgs).choices[0].message.content
-    score = np.mean(parse_ollama_output(llm_response))
-    if float(score) < 1.0 or float(score) > 10:
-        raise ValueError(f"Score must be between 1.0 and 10.0. Got {score}")
-    scores.append(float(score))
-    print("\n-------------------------------\n")
+        # remove prompt from response
+        model_response = model_response[len(prompt) + 1:]
+        # cut off after first full stop
+        model_response = cut_after_last_full_stop(model_response)
 
-print(f"Final score: {np.mean(scores)}")
+        # prepare prompt
+        msgs = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": model_response},
+        ]
+
+        # let llm score output
+        llm_response = client.chat.completions.create(model="llama3", messages=msgs).choices[0].message.content
+        score = np.mean(parse_ollama_output(llm_response))
+        if float(score) < 1.0 or float(score) > 3.0:
+            raise ValueError(f"Score must be between 1 and 3. Got {score}")
+        scores.append(float(score))
+
+    return np.mean(scores)

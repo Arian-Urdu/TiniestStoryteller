@@ -6,9 +6,13 @@ import torch
 import datasets
 from transformers import PreTrainedTokenizerFast
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import LinearLR
 from torch.utils.data import DataLoader
 import torch.nn.utils as nn_utils
 from accelerate import Accelerator
+from evaluation.llm_evaluation_logic import evaluate_model_logic
+from evaluation.llm_evaluation_stories import evaluate_model_stories
+# from curriculum_learning.split_curriculum import split_curriculum
 
 from tqdm.auto import tqdm
 import wandb
@@ -41,9 +45,17 @@ val_data = val_data.map(encode_batch, batched=True)
 
 partition_size = len(train_data) // 3
 
-high_train_data = train_data.select(range(0, partition_size))
-mid_train_data = train_data.select(range(0, 2 * partition_size))
-low_train_data = train_data.select(range(0, len(train_data)))
+# dataset_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'curriculum_learning', 'split_dataset')
+# dataset_curriculum = datasets.load_from_disk(dataset_path)
+#
+# high_train_data = dataset_curriculum["high_data"]
+# mid_train_data = dataset_curriculum["mid_data"]
+# low_train_data = dataset_curriculum["low_data"]
+# print(f"Data split: {type(high_train_data)}, {len(high_train_data)}")
+
+high_train_data = train_data[:partition_size]
+mid_train_data = train_data[partition_size:2*partition_size]
+low_train_data = train_data[2*partition_size:len(train_data)]
 
 
 
@@ -144,7 +156,8 @@ m = model.to(device)
 
 # create a PyTorch optimizer with LR scheduler
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
-scheduler = ReduceLROnPlateau(optimizer, 'min', patience=5, cooldown=5, verbose = True)
+# scheduler = ReduceLROnPlateau(optimizer, 'min', patience=5, cooldown=5, verbose = True)
+scheduler = LinearLR(optimizer, start_factor=1.0, end_factor=0.5, total_iters=30)
 
 accelerator = Accelerator(gradient_accumulation_steps)
 
@@ -277,3 +290,9 @@ with open((os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output', '
     f.write(disclaimer)
     f.write("\n")
     f.write(output)
+
+if wandb_log:
+    stories_score = evaluate_model_stories(model = model)
+    logic_score = evaluate_model_logic(model = model)
+    wandb.log({"stories_eval": stories_score,
+               "logic_eval": logic_score})

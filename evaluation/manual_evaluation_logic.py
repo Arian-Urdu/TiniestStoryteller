@@ -2,7 +2,7 @@ import os
 import numpy as np
 import torch
 
-from load_checkpoint import model
+from evaluation.load_checkpoint import load_model
 from config import tokenizer, device
 import random
 
@@ -22,29 +22,35 @@ prompts_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "prompt
 with open(prompts_path, 'r', encoding='utf-8') as f:
     prompts = f.read().split('\n')
 
-for i in indices:
-    # get random prompt from file
-    prompt, example_response = prompts[i].split("---")
+def evaluate_model_logic_manual(model = None, modelpath = ""):
+    if model == None:
+        if modelpath == "":
+            raise Exception("Invalid arguments")
+        model = load_model(modelpath)
 
-    # let model generate
-    input_ids = tokenizer.encode(prompt, return_tensors='pt').to(device)
-    with torch.no_grad():
-        model_response = model.generate(input_ids, max_new_tokens=10)
-    model_response = tokenizer.decode(model_response[0].tolist())
+    for i in indices:
+        # get random prompt from file
+        prompt, example_response = prompts[i].split("---")
 
-    # remove prompt from response
-    model_response = model_response[len(prompt) + 1:]
-    # cut off after first full stop
-    model_response = model_response.split(".")[0] + "."
+        # let model generate
+        input_ids = tokenizer.encode(prompt, return_tensors='pt').to(device)
+        with torch.no_grad():
+            model_response = model.generate(input_ids, max_new_tokens=10)
+        model_response = tokenizer.decode(model_response[0].tolist())
 
-    # let operator score output
-    score = input(f"Prompt:\n{prompt}\n\n"
-                  f"Model response:\n{model_response}\n\n"
-                  f"Example response:\n{example_response}\n\n"
-                  f"Your score: ")
-    if float(score) < 1.0 or float(score) > 10:
-        raise ValueError(f"Score must be between 1.0 and 10.0. Got {score}")
-    scores.append(float(score))
-    print("\n-------------------------------\n")
+        # remove prompt from response
+        model_response = model_response[len(prompt) + 1:]
+        # cut off after first full stop
+        model_response = model_response.split(".")[0] + "."
 
-print(f"Final score: {np.mean(scores)}")
+        # let operator score output
+        score = input(f"Prompt:\n{prompt}\n\n"
+                      f"Model response:\n{model_response}\n\n"
+                      f"Example response:\n{example_response}\n\n"
+                      f"Your score: ")
+        if float(score) < 1.0 or float(score) > 10:
+            raise ValueError(f"Score must be between 1.0 and 10.0. Got {score}")
+        scores.append(float(score))
+        print("\n-------------------------------\n")
+
+    return np.mean(scores)

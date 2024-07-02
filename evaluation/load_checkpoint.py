@@ -8,17 +8,21 @@ except ImportError:
 from config import device
 import os
 
-model = LanguageModel()
+def load_model(modelpath):
 
-model_path = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'output/model_checkpoint_2024-06-26-08:39.pth')
-checkpoint = torch.load(model_path)
+    model = LanguageModel()
+    # 'output/model_checkpoint_2024-06-26-08:39.pth'
+    model_path = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), modelpath)
+    checkpoint = torch.load(model_path)
 
-# instantiate model and optimizer
-model = LanguageModel().to(device)
-optimizer = torch.optim.AdamW(model.parameters())#, lr = checkpoint['learning_rate'])
+    # instantiate model and optimizer
+    model = LanguageModel().to(device)
+    optimizer = torch.optim.AdamW(model.parameters())#, lr = checkpoint['learning_rate'])
 
-# load model and optimizer
-model.load_state_dict(checkpoint['model_state_dict'])
-model.eval() # set model to evaluation
-optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    # load model and optimizer
+    model.load_state_dict(checkpoint['model_state_dict'])
+    model.eval() # set model to evaluation
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
+    return model
 

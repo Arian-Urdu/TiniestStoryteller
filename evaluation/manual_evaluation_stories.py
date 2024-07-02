@@ -4,7 +4,7 @@ import os
 import torch
 
 from config import tokenizer, device
-from load_checkpoint import model
+from evaluation.load_checkpoint import load_model
 import numpy as np
 
 number_prompts = 10
@@ -30,28 +30,34 @@ def cut_after_last_full_stop(input_string):
     result_string = input_string[:last_full_stop_index + 1]
     return result_string
 
-for i in indices:
-    # get random prompt from file
-    prompt = prompts[i]
+def evaluate_model_stories_manual(model = None, modelpath = ""):
+    if model == None:
+        if modelpath == "":
+            raise Exception("Invalid arguments")
+        model = load_model(modelpath)
 
-    # let model generate
-    input_ids = tokenizer.encode(prompt, return_tensors='pt').to(device)
-    with torch.no_grad():
-        model_response = model.generate(input_ids, max_new_tokens=10)
-    model_response = tokenizer.decode(model_response[0].tolist())
+    for i in indices:
+        # get random prompt from file
+        prompt = prompts[i]
 
-    # remove prompt from response
-    model_response = model_response[len(prompt) + 1:]
-    # cut off after first full stop
-    model_response = cut_after_last_full_stop(model_response)
+        # let model generate
+        input_ids = tokenizer.encode(prompt, return_tensors='pt').to(device)
+        with torch.no_grad():
+            model_response = model.generate(input_ids, max_new_tokens=10)
+        model_response = tokenizer.decode(model_response[0].tolist())
 
-    # let operator score output
-    score = input(f"Prompt:\n{prompt}...\n\n"
-                  f"Model response:\n...{model_response}\n\n"
-                  f"Your score: ")
-    if float(score) < 1.0 or float(score) > 10:
-        raise ValueError(f"Score must be between 1.0 and 10.0. Got {score}")
-    scores.append(float(score))
-    print("\n-------------------------------\n")
+        # remove prompt from response
+        model_response = model_response[len(prompt) + 1:]
+        # cut off after first full stop
+        model_response = cut_after_last_full_stop(model_response)
 
-print(f"Final score: {np.mean(scores)}")
+        # let operator score output
+        score = input(f"Prompt:\n{prompt}...\n\n"
+                      f"Model response:\n...{model_response}\n\n"
+                      f"Your score: ")
+        if float(score) < 1.0 or float(score) > 3:
+            raise ValueError(f"Score must be between 1 and 3. Got {score}")
+        scores.append(float(score))
+        print("\n-------------------------------\n")
+
+    return np.mean(scores)
