@@ -29,8 +29,8 @@ def encode_batch(data):
 print(f"Loaded Tokenizer with size: {vocab_size}")
 
 # for testing
-train_data = train_data.select(range(2000))
-val_data = val_data.select(range(1000))
+# train_data = train_data.select(range(2000))
+# val_data = val_data.select(range(1000))
 
 train_data = train_data.map(encode_batch, batched=True)
 val_data = val_data.map(encode_batch, batched=True)
@@ -197,14 +197,9 @@ try:
                     sum_of_squares = 0.0
                     max_norm = 0.0
                     num_params = 0
-                    print(f"Type of parameters: {type(model.parameters().get_state())}")
                     for name, param in model.named_parameters():
-                        print("Entered for")
-                        print(f"Type of param: {type(param)}")
                         if param.requires_grad:
-                            print(f"Parameter: {name}, shape: {param.shape}")
                             if param.grad is not None:
-                                print(f"Gradient: {param.grad.shape}")
                                 norm = param.grad.norm().item()
                                 total_norm += norm
                                 sum_of_squares += norm ** 2
