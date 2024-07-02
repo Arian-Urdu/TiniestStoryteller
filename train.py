@@ -7,13 +7,15 @@ import datasets
 from transformers import PreTrainedTokenizerFast
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
+import torch.nn.utils as nn_utils
 from accelerate import Accelerator
 
 from tqdm.auto import tqdm
 import wandb
 
 from config import batch_size, block_size, max_iters, eval_interval, eval_iters, learning_rate, device, wandb_log, \
-    wandb_project, wandb_run_name, config, train_data, val_data, tokenizer, vocab_size, num_epochs, gradient_accumulation_steps
+    wandb_project, wandb_run_name, config, train_data, val_data, tokenizer, vocab_size, num_epochs, gradient_accumulation_steps, \
+    max_grad_norm
 from transformer_model import LanguageModel
 
 # to use gpu/device, data and model params has to be moved to the device
@@ -188,6 +190,8 @@ try:
                 logits, loss = model(xb, attention_mask, yb)
 
                 accelerator.backward(loss)
+
+                nn_utils.clip_grad_norm_(model.parameters(), max_grad_norm)
 
                 if (iteration % eval_interval == 0) or (iteration == max_iters - 1):
                     losses = estimate_loss(partition)

@@ -18,6 +18,7 @@ n_embed = 64 # has to be divisible(without rem) by n_head, given head_size defin
 n_head = 8
 n_layer = 7
 dropout = 0.3
+max_grad_norm = 1.0
 # wandb logging
 wandb_log = True # disabled by default
 wandb_project = 'TiniestStoryteller'
