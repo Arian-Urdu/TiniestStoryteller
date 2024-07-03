@@ -39,7 +39,7 @@ print("Loaded dataset from disk")
 # Smaller Dataset for testing
 # train_data = train_data.select(range(200000))
 
-tokenizer_path = os.path.join(current_dir, 'tokenizers', 'bpe_tokenizer_2048.json')
+tokenizer_path = os.path.join(current_dir, 'tokenizers', 'bpe_tokenizer_4096.json')
 tokenizer = PreTrainedTokenizerFast(
     tokenizer_file = tokenizer_path,
     bos_token = "<|endoftext|>",

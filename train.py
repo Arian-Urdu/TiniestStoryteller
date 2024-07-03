@@ -38,31 +38,35 @@ print(f"Loaded Tokenizer with size: {vocab_size}")
 # train_data = train_data.select(range(2000))
 # val_data = val_data.select(range(1000))
 
-train_data = train_data.map(encode_batch, batched=True)
+# train_data = train_data.map(encode_batch, batched=True)
 val_data = val_data.map(encode_batch, batched=True)
 
 # print(train_data[0])
 
-partition_size = len(train_data) // 3
+# partition_size = len(train_data) // 3
 
-# dataset_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'curriculum_learning', 'split_dataset')
-# dataset_curriculum = datasets.load_from_disk(dataset_path)
-#
-# high_train_data = dataset_curriculum["high_data"]
-# mid_train_data = dataset_curriculum["mid_data"]
-# low_train_data = dataset_curriculum["low_data"]
+dataset_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'curriculum_learning', 'split_dataset')
+dataset_curriculum = datasets.load_from_disk(dataset_path)
+
+high_train_data = dataset_curriculum["high_data"]
+high_train_data = high_train_data.map(encode_batch, batched = True)
+mid_train_data = dataset_curriculum["mid_data"]
+mid_train_data = mid_train_data.map(encode_batch, batched = True)
+low_train_data = dataset_curriculum["low_data"]
+low_train_data = low_train_data.map(encode_batch, batched = True)
 # print(f"Data split: {type(high_train_data)}, {len(high_train_data)}")
 
-high_train_data = train_data[:partition_size]
-mid_train_data = train_data[partition_size:2*partition_size]
-low_train_data = train_data[2*partition_size:len(train_data)]
+# high_train_data = train_data[:partition_size]
+# mid_train_data = train_data[partition_size:2*partition_size]
+# low_train_data = train_data[2*partition_size:len(train_data)]
 
 
 
-mask_data = train_data["attention_mask"]
+# mask_data = train_data["attention_mask"]
 high_mask_data = high_train_data["attention_mask"]
 mid_mask_data = mid_train_data["attention_mask"]
 low_mask_data = low_train_data["attention_mask"]
+val_mask_data = val_data["attention_mask"]
 # train_data = train_data["input_ids"]
 high_train_data = high_train_data["input_ids"]
 mid_train_data = mid_train_data["input_ids"]
@@ -104,7 +108,7 @@ low_train_dataset = TinyDataset_Preprocessed(low_train_data, tokenizer, low_mask
 print('Loaded Pytorch train_dataset with length:', len(high_train_dataset))
 # print('Check first input-label pair:', train_dataset[0])
 
-val_dataset = TinyDataset_Preprocessed(val_data, tokenizer, mask_data)
+val_dataset = TinyDataset_Preprocessed(val_data, tokenizer, val_mask_data)
 print('Loaded Pytorch val_dataset with length:', len(val_dataset))
 # print('Check first input-label pair:', val_dataset[0])
 
