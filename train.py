@@ -54,7 +54,7 @@ mid_train_data = dataset_curriculum["mid_data"]
 mid_train_data = mid_train_data.map(encode_batch, batched = True)
 low_train_data = dataset_curriculum["low_data"]
 low_train_data = low_train_data.map(encode_batch, batched = True)
-# print(f"Data split: {type(high_train_data)}, {len(high_train_data)}")
+print(f"Data split: {len(high_train_data)}, {len(mid_train_data)}, {len(low_train_data)}")
 
 # high_train_data = train_data[:partition_size]
 # mid_train_data = train_data[partition_size:2*partition_size]
