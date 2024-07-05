@@ -12,6 +12,8 @@ import torch.nn.utils as nn_utils
 from accelerate import Accelerator
 from evaluation.llm_evaluation_logic import evaluate_model_logic
 from evaluation.llm_evaluation_stories import evaluate_model_stories
+from evaluation.rouge_and_bleu_score import score_rouge
+from evaluation.rouge_and_bleu_score import score_bleu
 # from curriculum_learning.split_curriculum import split_curriculum
 
 from tqdm.auto import tqdm
@@ -296,7 +298,15 @@ with open((os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output', '
     f.write(output)
 
 if wandb_log:
+    # llm evaluation
     stories_score = evaluate_model_stories(model = model)
     logic_score = evaluate_model_logic(model = model)
     wandb.log({"stories_eval": stories_score,
                "logic_eval": logic_score})
+    # rouge and bleu evaluation
+    rouge_l_score = score_rouge(model, val_data)
+    bleu_score_train = score_bleu(model, low_train_data)
+    bleu_score_val = score_bleu(model, val_data)
+    wandb.log({"rouge_l_score": rouge_l_score,
+               "bleu_score_train": bleu_score_train,
+               "bleu_score_val": bleu_score_val})
