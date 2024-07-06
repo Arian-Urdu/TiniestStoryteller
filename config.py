@@ -24,6 +24,10 @@ wandb_log = True # disabled by default
 wandb_project = 'TiniestStoryteller'
 wandb_run_name = 'run' + str(time.time())
 gradient_accumulation_steps = 2
+curriculum_schedule = [0, 5, 10, num_epochs]
+layer_freezing = True
+freeze_up_to = 3 # must be <= n_layer
+unfreeze_up_to = 2 # must be <= freeze_up_to
 # config
 config_keys = [k for k, v in globals().items() if not k.startswith('_') and isinstance(v, (int, float, bool, str))]
 config = {k: globals()[k] for k in config_keys}  # for logging

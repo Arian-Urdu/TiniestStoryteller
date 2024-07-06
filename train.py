@@ -21,7 +21,8 @@ import wandb
 
 from config import batch_size, block_size, max_iters, eval_interval, eval_iters, learning_rate, device, wandb_log, \
     wandb_project, wandb_run_name, config, train_data, val_data, tokenizer, vocab_size, num_epochs, gradient_accumulation_steps, \
-    max_grad_norm
+    curriculum_schedule, max_grad_norm, layer_freezing, unfreeze_up_to
+from curriculum_learning.layer_freezing import freeze_layers, unfreeze_layer
 from transformer_model import LanguageModel
 
 # to use gpu/device, data and model params has to be moved to the device
@@ -176,7 +177,7 @@ def train_model(dataloader, epochs):
     global continue_execution
     try:
         for epoch in epochs:
-            print("Currently on epoch number", epoch, "out of", num_epochs)
+            print(f"Currently on epoch number {epoch + 1} out of {num_epochs}")
             # progress bar via tqdm
             num_training_steps = len(dataloader)
             # progress_bar = tqdm(range(num_training_steps))
@@ -257,13 +258,29 @@ def train_model(dataloader, epochs):
 if wandb_log:
     wandb.init(project=wandb_project, name=wandb_run_name, config=config)
 
-log_iter, log_loss = train_model(high_train_loader, range(0, 5))
+
+# train model
+log_iter, log_loss = train_model(high_train_loader, range(curriculum_schedule[0], curriculum_schedule[1]))
 if continue_execution:
     print("Switching to partition 1")
-    log_iter, log_loss = train_model(mid_train_loader, range(5, 10))
+    if layer_freezing:
+        freeze_layers(model)
+    log_iter, log_loss = train_model(mid_train_loader, range(curriculum_schedule[1], curriculum_schedule[2]))
 if continue_execution:
     print("Switching to partition 2")
-    log_iter, log_loss = train_model(low_train_loader, range(10, num_epochs))
+    if not layer_freezing:
+        log_iter, log_loss = train_model(low_train_loader, range(curriculum_schedule[2], curriculum_schedule[3]))
+    else:
+        duration = (curriculum_schedule[3] - curriculum_schedule[2]) // unfreeze_up_to
+        for i in range(0, unfreeze_up_to):
+            unfreeze_layer(model, unfreeze_up_to - i)
+            start_epoch = curriculum_schedule[2] + i * duration
+            if i == unfreeze_up_to - 1:
+                end_epoch = curriculum_schedule[3]
+            else:
+                end_epoch = start_epoch + duration
+            print(f"Unfreezing layer {unfreeze_up_to - i} to train for {range(start_epoch, end_epoch)}")
+            log_iter, log_loss = train_model(low_train_loader, range(start_epoch, end_epoch))
 
 """ 
 ----------------------------------------------------------------
