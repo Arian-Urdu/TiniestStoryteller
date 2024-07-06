@@ -64,9 +64,11 @@ def evaluate_model_logic(model = None, modelpath = ""):
         ]
 
         # let llm score output
-        score = client.chat.completions.create(model="llama3", messages=msgs).choices[0].message.content
-        if float(score) < 1.0 or float(score) > 10:
-            raise ValueError(f"Score must be between 1.0 and 10.0. Got {score}")
-        scores.append(float(score))
+        score = float(client.chat.completions.create(model="llama3", messages=msgs).choices[0].message.content)
+        if score < 1.0:
+            score = 1.0
+        elif score > 3.0:
+            score = 3.0
+        scores.append(score)
 
     return np.mean(scores)
