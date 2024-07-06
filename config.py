@@ -14,7 +14,7 @@ eval_interval = 500
 eval_iters = 50 # was: 200
 learning_rate = 3e-4 # was: 3e-4
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-n_embed = 64 # has to be divisible(without rem) by n_head, given head_size definition further below
+n_embed = 64 # was 64 # has to be divisible(without rem) by n_head, given head_size definition further below
 n_head = 8
 n_layer = 7
 dropout = 0.3
@@ -39,7 +39,7 @@ print("Loaded dataset from disk")
 # Smaller Dataset for testing
 # train_data = train_data.select(range(200000))
 
-tokenizer_path = os.path.join(current_dir, 'tokenizers', 'bpe_tokenizer_4096.json')
+tokenizer_path = os.path.join(current_dir, 'tokenizers', 'bpe_tokenizer_2048.json')
 tokenizer = PreTrainedTokenizerFast(
     tokenizer_file = tokenizer_path,
     bos_token = "<|endoftext|>",

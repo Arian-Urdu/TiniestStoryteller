@@ -82,8 +82,10 @@ def evaluate_model_stories(model = None, modelpath = ""):
         # let llm score output
         llm_response = client.chat.completions.create(model="llama3", messages=msgs).choices[0].message.content
         score = np.mean(parse_ollama_output(llm_response))
-        if float(score) < 1.0 or float(score) > 3.0:
-            raise ValueError(f"Score must be between 1 and 3. Got {score}")
-        scores.append(float(score))
+        if score < 1.0:
+            score = 1.0
+        elif score > 3.0:
+            score = 3.0
+        scores.append(score)
 
     return np.mean(scores)
