@@ -397,3 +397,5 @@ weights_0_0.pt
 # Logging
 model_checkpoint.pth
 wandb/*
+
+untracked/

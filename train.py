@@ -27,6 +27,7 @@ from transformer_model import LanguageModel
 # to use gpu/device, data and model params has to be moved to the device
 print(f'Using device : {device}')
 
+continue_execution = True
 
 # Encode Data with Tokenizer
 def encode_batch(data):
@@ -118,7 +119,7 @@ print('Loaded Pytorch val_dataset with length:', len(val_dataset))
 high_train_loader = DataLoader(high_train_dataset, batch_size=batch_size, shuffle=False)
 mid_train_loader = DataLoader(mid_train_dataset, batch_size = batch_size, shuffle = False)
 low_train_loader = DataLoader(low_train_dataset, batch_size = batch_size, shuffle = False)
-loader_curriculum = [high_train_loader, mid_train_loader, low_train_loader]
+# loader_curriculum = [high_train_loader, mid_train_loader, low_train_loader]
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
 """ 
@@ -131,14 +132,14 @@ Traing Loop
 # iterate eval_iter times and average out the loss
 # for both train and val, this will be lot less noisy
 @torch.no_grad()
-def estimate_loss(partition):
+def estimate_loss(dataloader):
     out = {}
     model.eval()
 
     for split in ['train', 'val']:
         losses = torch.zeros(eval_iters)
         if split == 'train':
-            loader = loader_curriculum[partition]
+            loader = dataloader
         else:
              loader = val_loader
         for k, batch in enumerate(loader):
@@ -170,105 +171,106 @@ accelerator = Accelerator(gradient_accumulation_steps)
 model, optimizer, high_train_loader, mid_train_loader, low_train_loader = (
     accelerator.prepare(model, optimizer, high_train_loader, mid_train_loader, low_train_loader))
 
+
+def train_model(dataloader, epochs):
+    global continue_execution
+    try:
+        for epoch in epochs:
+            print("Currently on epoch number", epoch, "out of", num_epochs)
+            # progress bar via tqdm
+            num_training_steps = len(dataloader)
+            # progress_bar = tqdm(range(num_training_steps))
+            # for iteration, batch in enumerate(train_loader):
+            for iteration, batch in enumerate(dataloader):
+                with accelerator.accumulate(model):
+                    # every once in a while evaluate the loss on train and val sets
+                    # interesting that we're not printing loss every iter
+                    # instead we're estimating the non noisy loss every eval_intervar
+                    # only for printing purposes
+
+                    # sample a batch of data
+                    xb = batch["input"]
+                    yb = batch["label"]
+                    xb, yb = xb.to(device), yb.to(device)
+                    # Create the attention mask
+                    attention_mask = (xb != 0).unsqueeze(1).expand(-1, xb.size(1), -1)  # Shape (B, T, T)
+                    attention_mask = attention_mask.to(device)
+                    # evaluate the loss
+                    logits, loss = model(xb, attention_mask, yb)
+                    accelerator.backward(loss)
+
+                    nn_utils.clip_grad_norm_(model.parameters(), max_grad_norm)
+                    if (iteration % eval_interval == 0) or (iteration == max_iters - 1):
+                        losses = estimate_loss(dataloader)
+                        print(f"step {iteration}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+                        total_norm = 0.0
+                        sum_of_squares = 0.0
+                        max_norm = 0.0
+                        num_params = 0
+                        for name, param in model.named_parameters():
+                            if param.requires_grad:
+                                if param.grad is not None:
+                                    norm = param.grad.norm().item()
+                                    total_norm += norm
+                                    sum_of_squares += norm ** 2
+                                    if max_norm < norm:
+                                        max_norm = norm
+                                    num_params += 1
+                        if num_params > 0:
+                            average_norm = total_norm / num_params
+                            rms_norm = sum_of_squares / num_params
+                        else:
+                            average_norm = 0
+                            rms_norm = 0
+
+                        scheduler.step(losses['train'])
+
+                        # logging
+                        if wandb_log:
+                            wandb.log({
+                                "iter": iteration,
+                                "train/loss": losses['train'],
+                                "val/loss": losses['val'],
+                                "average_norm": average_norm,
+                                "rms_norm": rms_norm,
+                                "max_norm": max_norm,
+                                "lr": scheduler.state_dict()['_last_lr'][0],
+                                "dataset": len(dataloader)
+                            })
+
+                        # print(f"Learning rate: {scheduler.state_dict()['_last_lr'][0]}")
+                        # print(f"Scheduler state dict: {scheduler.state_dict().items()}")
+                        # print(f"Learning rate: {(scheduler._last_lr())[0]}")
+
+                    optimizer.step()
+                    # scheduler.step()
+                    optimizer.zero_grad(set_to_none=True)
+                    # progress_bar.update(1)
+    except KeyboardInterrupt:
+        continue_execution = False
+        return iteration, loss
+    return iteration, loss
+
+
+
 # create wandb run
 if wandb_log:
     wandb.init(project=wandb_project, name=wandb_run_name, config=config)
 
-try:
-    partition = 0
-    for epoch in range(num_epochs):
-        if epoch == 5:
-            partition = 1
-            print(f"Switching to partition {partition}")
-        if epoch == 10:
-            partition = 2
-            print(f"Switching to partition {partition}")
-        print("Currently on epoch number", epoch, "out of", num_epochs)
-        # progress bar via tqdm
-        num_training_steps = len(loader_curriculum[partition])
-        # progress_bar = tqdm(range(num_training_steps))
-        # for iteration, batch in enumerate(train_loader):
-        for iteration, batch in enumerate(loader_curriculum[partition]):
-            with accelerator.accumulate(model):
-                # every once in a while evaluate the loss on train and val sets
-                # interesting that we're not printing loss every iter
-                # instead we're estimating the non noisy loss every eval_intervar
-                # only for printing purposes
-
-
-                # sample a batch of data
-                xb = batch["input"]
-                yb = batch["label"]
-                xb, yb = xb.to(device), yb.to(device)
-
-                    # Create the attention mask
-                attention_mask = (xb != 0).unsqueeze(1).expand(-1, xb.size(1), -1)  # Shape (B, T, T)
-                attention_mask = attention_mask.to(device)
-
-                # evaluate the loss
-                logits, loss = model(xb, attention_mask, yb)
-
-                accelerator.backward(loss)
-
-                nn_utils.clip_grad_norm_(model.parameters(), max_grad_norm)
-
-                if (iteration % eval_interval == 0) or (iteration == max_iters - 1):
-                    losses = estimate_loss(partition)
-                    print(f"step {iteration}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
-
-                    total_norm = 0.0
-                    sum_of_squares = 0.0
-                    max_norm = 0.0
-                    num_params = 0
-                    for name, param in model.named_parameters():
-                        if param.requires_grad:
-                            if param.grad is not None:
-                                norm = param.grad.norm().item()
-                                total_norm += norm
-                                sum_of_squares += norm ** 2
-                                if max_norm < norm:
-                                    max_norm = norm
-                                num_params += 1
-                    if num_params > 0:
-                        average_norm = total_norm / num_params
-                        rms_norm = sum_of_squares / num_params
-                    else:
-                        average_norm = 0
-                        rms_norm = 0
-
-                    scheduler.step(losses['train'])
-
-                    # logging
-                    if wandb_log:
-                        wandb.log({
-                            "iter": iteration,
-                            "train/loss": losses['train'],
-                            "val/loss": losses['val'],
-                            "average_norm": average_norm,
-                            "rms_norm": rms_norm,
-                            "max_norm": max_norm,
-                            "lr": scheduler.state_dict()['_last_lr'][0],
-                            "dataset": len(loader_curriculum[partition])
-                        })
-
-                    # print(f"Learning rate: {scheduler.state_dict()['_last_lr'][0]}")
-                    # print(f"Scheduler state dict: {scheduler.state_dict().items()}")
-                    # print(f"Learning rate: {(scheduler._last_lr())[0]}")
-
-                optimizer.step()
-                # scheduler.step()
-                optimizer.zero_grad(set_to_none=True)
-                # progress_bar.update(1)
-
-except KeyboardInterrupt:
-    pass
+log_iter, log_loss = train_model(high_train_loader, range(0, 5))
+if continue_execution:
+    print("Switching to partition 1")
+    log_iter, log_loss = train_model(mid_train_loader, range(5, 10))
+if continue_execution:
+    print("Switching to partition 2")
+    log_iter, log_loss = train_model(low_train_loader, range(10, num_epochs))
 
 """ 
 ----------------------------------------------------------------
 """
 
 # Training done
-print("Please wait, genereating sample output with model... (this might take a while)")
+print("Please wait, generating sample output with model... (this might take a while)")
 
 # current time
 today = datetime.now().strftime('%Y-%m-%d-%H:%M')
@@ -277,8 +279,8 @@ today = datetime.now().strftime('%Y-%m-%d-%H:%M')
 torch.save({
     'model_state_dict': model.state_dict(),
     'optimizer_state_dict': optimizer.state_dict(),
-    'epoch': iteration,
-    'loss': loss.item(),
+    'epoch': log_iter,
+    'loss': log_loss.item(),
 },
     (os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output', 'model_checkpoint_' + today + '.pth')))
 
