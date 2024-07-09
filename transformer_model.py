@@ -99,6 +99,24 @@ class LanguageModel(nn.Module):
         self.ln_f = nn.LayerNorm(n_embed)
         self.lm_head = nn.Linear(n_embed, vocab_size)
 
+    def cosine_similarity(self, embedding1, embedding2):
+        return F.cosine_similarity(embedding1, embedding2, dim = 0)
+
+    def compute_similarity(self, tokenizer, word, synonyms):
+        word_id = tokenizer.encode(word, add_special_tokens = False)
+        if word_id == []:
+            return torch.tensor(0.0)
+        word_embedding = self.token_embedding_table(torch.tensor([word_id]).to(device))
+
+        similarities = []
+        for synonym in synonyms:
+            if synonym in tokenizer.get_vocab():
+                synonym_id = tokenizer.encode(synonym, add_special_tokens = False)[0]
+                synonym_embeddding = self.token_embedding_table(torch.tensor([synonym_id]).to(device))
+                sim = self.cosine_similarity(word_embedding, synonym_embeddding)
+                similarities.append(sim)
+        return torch.stack(similarities) if similarities else torch.tensor(0.0)
+
     def forward(self, idx, mask=None, targets=None):
         B, T = idx.shape
 
@@ -123,7 +141,7 @@ class LanguageModel(nn.Module):
 
         return logits, loss
 
-    def generate(self, idx, max_new_tokens):
+    def generate(self, idx, max_new_tokens, temperature = 1.0):
         # idx is (B, T) array of indices in the current context
         for _ in range(max_new_tokens):
             # crop idx to the last block size token
@@ -132,6 +150,8 @@ class LanguageModel(nn.Module):
             logits, loss = self(idx_cond)
             # focus only on the last time step
             logits = logits[:, -1, :]  # becomes (B, C)
+            # apply temperature to logits
+            logits = logits / temperature
             # apply softmax to get probabilities
             probs = F.softmax(logits, dim=-1)  # (B, C)
             # sample from the distribution
