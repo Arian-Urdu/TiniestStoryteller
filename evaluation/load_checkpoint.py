@@ -5,7 +5,12 @@ except ImportError:
     import sys
     sys.path.append(sys.path[0] + '/..')
     from transformer_model import LanguageModel
-from config import device
+try:
+    from config import device
+except ImportError:
+    import sys
+    sys.path.append(sys.path[0] + '/..')
+    from config import device
 import os
 
 def load_model(modelpath):

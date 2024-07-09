@@ -3,7 +3,13 @@ import os
 
 import torch
 
-from config import tokenizer, device
+try:
+    from config import tokenizer, device
+except ImportError:
+    import sys
+    sys.path.append(sys.path[0] + '/..')
+    from config import tokenizer, device
+
 from evaluation.load_checkpoint import load_model
 import numpy as np
 
@@ -61,3 +67,7 @@ def evaluate_model_stories_manual(model = None, modelpath = ""):
         print("\n-------------------------------\n")
 
     return np.mean(scores)
+
+
+modelpath = "model_checkpoint_2024-07-07-09:25.pth"
+evaluate_model_stories_manual(modelpath)
