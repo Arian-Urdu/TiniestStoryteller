@@ -1,0 +1,69 @@
+\RequirePackage{tikz}
+\RequirePackage{pgfkeys}
+\usetikzlibrary{chains, shapes.geometric, decorations, positioning, arrows, arrows.meta, backgrounds, fit, calc, shadings, shadows}
+\RequirePackage{pgfplots}
+
+\RequirePackage{graphicx}
+
+\RequirePackage{listings}
+\RequirePackage{lstautogobble}
+\RequirePackage{lstmisc}
+
+\lstdefinestyle{lststyle}{
+    commentstyle= \color{codegray},
+    keywordstyle= \ttfamily\bfseries\itshape,
+    numberstyle= \ttfamily\scriptsize\color{codegray},
+    basicstyle= \ttfamily\upshape,
+    backgroundcolor= \color{backcolor},
+    extendedchars=true,
+    framexleftmargin= 4pt,
+    xleftmargin= -4pt,
+    breakatwhitespace= false,
+    breaklines= true,
+    autogobble= true,
+    captionpos= b,
+    keepspaces= true,
+    escapechar= \%,
+    numbers= left,
+    numbersep= 8pt,
+    showspaces= false,
+    showstringspaces= false,
+    showtabs= false,
+    tabsize= 4,
+    %moredelim=[is][\sout]{|}{|},
+    literate=
+        {==}{{==}}2
+        {<=}{{<=}}2
+        {>=}{{>=}}2
+        {!=}{{!=}}2
+        {+=}{{+=}}2
+        {-=}{{-=}}2
+        {*=}{{*=}}2
+        {/=}{{/=}}2
+        {==>}{{==>}}3
+        {<==}{{<==}}3
+        {<->}{{<->}}3
+        {->}{{->}}2
+        {<-}{{<-}}2
+        {=>}{{=>}}2
+        {+at}{{@}}1
+        {+cdot}{{∙}}1
+        {+div}{{∕}}1
+        {+congruent}{{≡}}1
+        {+elem}{{∈}}1
+        {+exists}{{∃}}1
+        {+forall}{{∀}}1
+        {+circ}{{◦}}1
+        {+join}{{⋈}}1
+        {+N}{{ℕ}}1
+        {+R}{{ℝ}}1
+        {+Q}{{ℚ}}1
+        {+C}{{ℂ}}1
+        {+subset}{{⊂}}1
+        {+supset}{{⊃}}1
+        {+subseteq}{{⊆}}1
+        {+supseteq}{{⊇}}1
+        {+nsubset}{{⊄}}1
+        {+nexists}{{∄}}1
+}
+\lstset{style=lststyle}

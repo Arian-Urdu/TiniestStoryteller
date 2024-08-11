@@ -1,0 +1,47 @@
+\newcommand{\maketitlepage}{
+    \begin{titlepage}
+        \sffamily
+        {
+            \centering
+            \vspace*{8em}
+            {
+                \Huge\bfseries\scshape\coursenumber{ }\\ \coursename\par
+            }
+            \vspace{1em}
+            {
+                \Large at
+                {
+                    \color{uhhblue}\huge\bfseries\itshape\universitydomainname\par
+                }
+            }
+            \vspace{1em}
+            {
+                \Large with{ }{\itshape\docent}{ }in the{ }\semester\par
+            }
+            \vspace{30em}
+%            {
+%                \Large\bfseries\coursetype{ }\theexercisenumber\par
+%            }
+            \vspace{2em}
+            {
+                \large
+                Report by\par
+                \itshape
+                \begin{tabular}{ccccc}
+                    \studentstable \\
+                    \studentsnumbertable
+                \end{tabular}\par
+            }
+        }
+    \vfill
+    {
+        \begin{minipage}{0.45\textwidth}
+            \linespread{0.85}
+            \begin{flushleft}
+                \LARGE\color{darkgray}\scshape{\bfseries Faculty}\\
+                \LARGE\color{uhhblue}\scshape of \faculty
+            \end{flushleft}
+        \end{minipage}
+    }
+    \end{titlepage}
+}

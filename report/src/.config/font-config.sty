@@ -1,0 +1,28 @@
+\RequirePackage[T1]{fontspec}
+
+\setsansfont{TheSansUHH}[
+    Path= ../.assets/font/TheSansUHH/,
+    Scale= 0.92,
+    Extension= .ttf,
+    UprightFont= *-Regular2024,
+    BoldFont= *-Bold2024,
+    ItalicFont= *-RegularItalic2024,
+    BoldItalicFont= *-BoldItalic2024,
+    SmallCapsFont = {*-SemiLightCaps2024},
+    SmallCapsFeatures = {Letters=SmallCaps},
+    BoldFeatures = {
+        SmallCapsFont = {*-BoldCaps2024},
+        SmallCapsFeatures = {Letters=SmallCaps, LetterSpace=2},
+    },
+]
+
+\setmonofont{FiraCode}[
+    Path= ../.assets/font/FiraCode/ttf/,
+    Scale= 0.85,
+    Extension= .ttf,
+    UprightFont= *-Retina,
+    BoldFont= *-Bold,
+    ItalicFont= *-Retina,
+    BoldItalicFont= *-Bold,
+    Ligatures= TeX,
+]
