@@ -106,27 +106,50 @@
     Building on the transformer architecture, the model developped for this project integrates various optimisation procedures such as thorough data preprocessing or curriculum learning.
     These optimisations are aimed at enhancing the model’s efficiency and accuracy, particularly in generating coherent text within the targeted domain. Additionally, the model's performance is monitored through a set of evaluation metrics, ensuring that it meets the predefined benchmarks. The following section provides a detailed breakdown of these techniques and their impact on the model's performance.
 
-
-
     \subsection*{Architecture}
     The training and prediction process of the model occurs using a transformer architecture.
-    % two sentences on what that is
+    Transformers are a type of neural network architecture which process sequential data using self-attention mechanisms.
+    This allows them to consider the importance of each part of the input and capture complex dependencies within it.
+    For this reason, transformers are particularly effective for natural language processing tasks.
+
     % four sentences on why we chose that and didn't try anything else
+    A 7-layer model proved to be the optimal balance between low model complexity and prediction accuracy.
+    This configuration provides sufficient depth to capture the patterns present in the data compared to shallower models. Those struggle to generalise on the seen data
+    and lead to results with an inconsistent flow of text as well as nonsensical words. *
+    Deeper models not only require more memory and processing power, they also produce results ... % describe them
+    which indicates overfitting. For a limited dataset such as the one used in this project, it is crucial to monitor the model's tendency to overfit, as memorising training data can happen much easier than when using a larger dataset.
 
+    Two embedding layers transform the input data into numerical format: A \textit{token embedding table} is used to convert the input tokens into vector representations
+    and a layer using a \textit{position embedding table} encodes the position of each token in the sequence.
 
-    \quad > number of layers\\
-    \quad > hidden units\\
-    \quad > attention heads\\
-    \quad > dropout rates
+    \textit{Self-attention} layers are the core component of the transformer model. They allow it to understand the dependencies within the input sequence by weighing the relation of each pair of tokens.
+    The model utilises 8 attention heads which perform the following functions: each head projects the input sequence into query, key, and value representations, each with outputs of dimension 8.
+    Additionally, a dropout with probability 0.3 is performed. This final step aims to prevent overfitting by randomly deactivating a fraction of the attention weights, allowing the model to become more robust against overfitting.
+
+    Following on from there, \textit{feed-forward} layers apply linear transformations and non-linear activation to the output from the preceding self-attention layer.
+    These contribute to the model's ability to extract complex patterns from the input data. The first linear transformation increases the dimensionality of the input's representation to 256 features.
+    Subsequently, a ReLU (Rectified Linear Unit) function is applied, introducing non-linearity into the model.
+    The features are then reduced back to their original number of 64, followed by a dropout with probability of 0.3 in this layer also.
+
+    * see appendix for a text generated with a model of only 6 layers
+
+    \subsection*{Parameters}
+    \quad > embedding size\\
+    \quad > number of parameters\\
+    \quad > optimiser\\
+    \quad > learning rate schedule\\
+    \quad > loss function
     
     \subsection*{Data}
     The dataset used in the training process consists of short stories from the TinyStories collect described above.
     While the raw data is highly valuable, it contains minor inconsistencies due to its generation process with a large language model,
     necessitating some preprocessing to ensure optimal quality for this use case.
+
     The elementary data transformation process contisted of cleaning up those inconsistencies.
     Empty stories were deleted and through usage of a \textit{set} data structure, exact duplicates were removed.
     Subsequently, we replaced falsely encoded symbols such as “Ã©” with their corresponding UTF-8 representation, in this case “é”*.
     In some instances this was not possible, and the story retained special characters despite replacing the most common encodings. Those stories were removed entirely.
+
     This cleaning process resulted in a reduction to about 85\% of the original data. The working dataset contains roughly 1.8 million data points, the number of unique words remains largely unchanged.
     It might appear as though this reduction performed on an already comparatively small dataset is so strong as to hinder a meaningful
     learning process. However, it should be pointed out that this procedure
@@ -143,11 +166,13 @@
     The exact composition of this pipeline is examined
     in the \textit{performance} section. In short, each story is passed to a large language model along with the instruction to give it a rating between 1 and 3 for its grammar, spelling, and consistency.
     The idea behind this automated evaluation pipeline comes from Eldan and Li, who used it to streamline the scoring process of the outputs generated by their models. % <- zitat
+
     Creating this total ordering on the training data was a complex process that ran for multiple days on a powerful server. Despite the project's emphasis on minimising hardware demands, this one-time computational investment was a necessary trade-off to facilitate optimisation at later stages.
 
     Another important consideration when working with natural language is the choice of tokeniser.
     The \textit{BasicEnglish} tokeniser by \textit{torchtext} provides a good starting point for initial experiments, but proves too complex for the scope of this project. Any large tokeniser induces
     longer processing times during training, since more calculations need to be performed at every level.
+
     Instead, we wrote a custom tokeniser to optimally handle the needs of this model. It is based on the byte-pair encoding (bpe) format and contains 4096 tokens in its vocabulary. Bpe tokenisers are beneficial in this use case compared to other types such as WordPiece or Unigram tokenisers because of their flexibility regarding
     out-of-vocabulary words.
     WordPiece and Unigram tokenisers attempt to split unknown words into sub-words contained in their vocabulary and may use a special \textit{<unknown>} token if they are unsuccessful. Bpe tokenisers more effectively handle out-of-vocabulary words by breaking it down into subword components that exist in its vocabulary, ensuring that no part of the word is left unrepresented.
@@ -155,19 +180,12 @@
 
     * see appendix for a full list of encoding replacements.
 
-    \subsection*{Parameters}
-    \quad > embedding size\\
-    \quad > number of parameters\\
-    \quad > optimiser\\
-    \quad > learning rate schedule\\
-    \quad > loss function\\
-    \quad > most importantly: curriculum learning + layer freezing (or maybe this belongs in the training subsection? then put data after parameters)
-
     \subsection*{Training}
     \quad > batch size\\
     \quad > number of epochs\\
     \quad > training time\\
-    \quad > hardware specifications
+    \quad > hardware specifications\\
+    \quad > most importantly: curriculum learning + layer freezing
 
     \subsection*{Performace}
     \quad > evaluation metrics\\
