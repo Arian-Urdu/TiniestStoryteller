@@ -37,6 +37,10 @@ Add the downloaded .pth file in output folder.
 
 Now generate text with the downloaded model running `generate.py`.
 
+Example_output:
+![Example_output](https://github.com/user-attachments/assets/b0b464b0-4fc5-46fd-ac19-2d98096c5c46)
+
+
 ## Usage
 
 ### Data
@@ -47,7 +51,7 @@ Add downloaded files to data folder.
 
 ### Config
 
-Based on hardware change `batch_size` and `block_size` in the `config.py` file, here youcan also onfigure wandb for logging purposses.
+Based on hardware change `batch_size` and `block_size` in the `config.py` file, here you can also configure wandb for logging purposses.
 You can also expermient with different Transformer sizes and other training hyperparameters.
 Otherwise the default settings are a resonable starting choice.
 
