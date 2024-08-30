@@ -40,7 +40,7 @@ train_data = dataset['train']
 val_data = dataset['validation']
 # print("Loaded dataset from disk")
 
-# Smaller Dataset for testing
+# Smaller dataset for testing
 # train_data = train_data.select(range(200000))
 
 tokenizer_path = os.path.join(current_dir, 'tokenizers', 'bpe_tokenizer.json')
