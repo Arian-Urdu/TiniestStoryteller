@@ -47,7 +47,7 @@ Add downloaded files to data folder.
 
 ### Config
 
-Based on hardware change `batch_size` and `block_size` in the `config.py` file, here youcan also onfigure wandb for logging purposses.
+Based on hardware change `batch_size` and `block_size` in the `config.py` file, here you can also configure wandb for logging purposses.
 You can also expermient with different Transformer sizes and other training hyperparameters.
 Otherwise the default settings are a resonable starting choice.
 
