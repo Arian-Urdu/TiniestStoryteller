@@ -37,6 +37,10 @@ Add the downloaded .pth file in output folder.
 
 Now generate text with the downloaded model running `generate.py`.
 
+Example_output:
+![Example_output](https://github.com/user-attachments/assets/b0b464b0-4fc5-46fd-ac19-2d98096c5c46)
+
+
 ## Usage
 
 ### Data
