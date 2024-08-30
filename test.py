@@ -1,5 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
+import sys
+from io import StringIO
 
 import config as cfg
 import generate
@@ -47,10 +49,19 @@ class TestGenerate(unittest.TestCase):
     def test_context_creation(self, mock_zeros):
         """ Test the creation of the initial context """
         generate.num_gen = 1  # Ensure we only generate once
-        with patch('builtins.print'):  # Suppress print output
-            exec(open('generate.py').read())
-        mock_zeros.assert_called_once_with((1, 1), dtype=torch.long, device=generate.device)
 
+        # Redirect stdout to suppress print output
+        original_stdout = sys.stdout
+        sys.stdout = StringIO()
+
+        try:
+            exec(open('generate.py').read())
+        finally:
+            # Restore stdout
+            sys.stdout = original_stdout
+
+        # Check that torch.zeros was called correctly
+        mock_zeros.assert_called_once_with((1, 1), dtype=torch.long, device=generate.device)
         
 if __name__ == '__main__':
     unittest.main()
