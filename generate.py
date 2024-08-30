@@ -17,7 +17,7 @@ model.eval()
 model.to(device)
 
 
-num_gen = 1
+num_gen = 2
 
 for i in range(num_gen):
     
@@ -40,4 +40,7 @@ for i in range(num_gen):
     # Process the output
     output = tokenizer.decode(truncated_output)
     print(output)
+    print("-"*40)
+    print(f"Generation {i + 1} out of {num_gen} complete.")
+    print("\n")
 
