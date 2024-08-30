@@ -17,7 +17,7 @@ model.eval()
 model.to(device)
 
 
-num_gen = 3
+num_gen = 1
 
 for i in range(num_gen):
     

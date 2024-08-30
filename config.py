@@ -6,7 +6,7 @@ import datasets
 import torch
 from transformers import PreTrainedTokenizerFast
 
-batch_size = 32  # how many independent sequences will we process in parallel?
+batch_size = 8  # how many independent sequences will we process in parallel?
 block_size = 256  # what is the maximum context length for predictions?
 max_iters = 2000000
 num_epochs = 20
@@ -14,7 +14,7 @@ eval_interval = 500
 eval_iters = 50 # was: 200
 learning_rate = 3e-4 # was: 3e-4
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-n_embed = 256 # was 64 # has to be divisible(without rem) by n_head, given head_size definition further below
+n_embed = 64 # was 64 # has to be divisible(without rem) by n_head, given head_size definition further below
 n_head = 8
 n_layer = 7
 dropout = 0.3
@@ -43,7 +43,7 @@ val_data = dataset['validation']
 # Smaller Dataset for testing
 # train_data = train_data.select(range(200000))
 
-tokenizer_path = os.path.join(current_dir, 'tokenizers', 'bpe_tokenizer_4096.json')
+tokenizer_path = os.path.join(current_dir, 'tokenizers', 'bpe_tokenizer.json')
 tokenizer = PreTrainedTokenizerFast(
     tokenizer_file = tokenizer_path,
     bos_token = "<|endoftext|>",
