@@ -1,0 +1,148 @@
+% COMMANDS
+\newcommand{\inlinecode}[1]{
+    \tikz[baseline]{%
+        \node[anchor= base, text= tagtxt, fill= backg, font= \normalfont\ttfamily, text depth= 0.5mm, rounded corners= 1pt, inner sep= 2pt] {#1};
+    }%
+}
+
+\newcommand{\counterproofqed}{%
+    \tikz[x= 0.22em, y= 0.22em, line width= 0.032em] {%
+        \draw (0, 2.83) -- (2.83, 0) (0.71, 3.54) -- (3.54, 0.71) (0, 0.71) -- (2.83, 3.54) (0.71, 0) -- (3.54, 2.83);
+    }
+}
+
+\newcommand{\proofbox}{%
+    \tikz {%
+        \draw[black, fill= black] (0, 0) rectangle (0.22, 0.22);
+    }
+}
+
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\ZZ}{\mathbb{Z}}
+\newcommand{\NN}{\mathbb{N}}
+\newcommand{\QQ}{\mathbb{Q}}
+\newcommand{\CC}{\mathbb{C}}
+\newcommand{\KK}{\mathbb{K}}
+\newcommand{\FF}{\mathbb{F}}
+\newcommand{\EE}{\mathbb{E}}
+\DeclareMathAlphabet{\mathcalstd}{OMS}{cmsy}{m}{n}
+\renewcommand{\O}{\mathcalstd{O}}
+%\renewcommand{\path}[2]{#1 \rightsquigarrow #2}
+\newcommand{\bigO}[1]{\O\left(#1\right)}
+\newcommand{\bigTheta}[1]{\Theta\left(#1\right)}
+\newcommand{\bigOmega}[1]{\Omega\left(#1\right)}
+\newcommand{\smallO}[1]{o\left(#1\right)}
+\newcommand{\smallOmega}[1]{\omega\left(#1\right)}
+\newcommand{\given}{\,\middle|\,}
+% \renewcommand{\obar}[1]{\mkern 1.5mu\overline{\mkern-1.5mu#1\mkern-1.5mu}\mkern 1.5mu}
+
+\newcommand{\set}[1]{\left\{#1\right\}}
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\norm}[1]{\left\|#1\right\|}
+\newcommand{\ceil}[1]{\left\lceil#1\right\rceil}
+\newcommand{\floor}[1]{\left\lfloor#1\right\rfloor}
+\newcommand{\round}[1]{\left\lfloor#1\right\rceil}
+\newcommand{\inner}[1]{\left\langle#1\right\rangle}
+
+\DeclareMathOperator{\indeg}{indeg}
+\DeclareMathOperator{\outdeg}{outdeg}
+
+% TASK, SUBTASK AND SOLUTION
+\newcounter{exercisenumber}
+\newcounter{task}[exercisenumber]
+\renewcommand{\thetask}{\theexercisenumber.\arabic{task}}
+
+\newenvironment{iltask}[1][]{
+    \refstepcounter{task}
+    \setcounter{subtask}{0}
+        {\sffamily\color{uhhblue}{\bfseries Aufgabe \thetask}\ifx&#1&\else: #1\fi{\bfseries.}}
+    \slshape
+    }{
+}
+
+\newenvironment{ctask}[1][]{
+    \refstepcounter{task}
+    \setcounter{subtask}{0}
+    \begin{center}
+        \large \scshape
+        {\sffamily\color{uhhblue}{\bfseries Aufgabe \thetask}\ifx&#1&\else: #1\fi{\bfseries.}}
+    \end{center}
+    \slshape\vspace{-6pt}
+    }{
+}
+
+\newcounter{subtask}[task]
+
+\newenvironment{subtask}{
+    \renewcommand{\thesubtask}{\alph{subtask}}
+    \refstepcounter{subtask}
+    \begin{enumerate}[label=#1.\arabic*, leftmargin=2.25em, labelsep=0.25em, itemindent=0em, listparindent=\parindent]
+        \item[\color{uhhblue}{\normalfont\sffamily\bfseries \thetask.\thesubtask}]
+        \slshape\vspace{-6pt}
+        }{
+    \end{enumerate}
+}
+
+\newenvironment{nsubtask}{
+    \renewcommand{\thesubtask}{\arabic{subtask}}
+    \refstepcounter{subtask}
+    \begin{enumerate}[label=#1.\arabic*, leftmargin=2.25em, labelsep=0.25em, itemindent=0em, listparindent=\parindent]
+        \item[\color{uhhblue}{\normalfont\sffamily\bfseries \thetask.\thesubtask}]
+        \slshape\vspace{-6pt}
+        }{
+    \end{enumerate}
+}
+
+\newenvironment{solution}{
+    \begin{adjustwidth}{2.25em}{0em} \normalfont
+    }{
+    \end{adjustwidth}
+}
+
+\makeatletter
+\newenvironment{proof}[1][]{
+    \normalfont
+    \trivlist
+    \item[\hskip\labelsep\textsc{\proofname\ifx&#1&\else{ }(#1)\fi.}]
+    }{
+    \hfill\proofbox\endtrivlist\@endpefalse
+}
+
+\newenvironment{counterproof}[1][]{
+    \normalfont
+    \trivlist
+    \item[\hskip\labelsep\textsc{\proofname\ifx&#1&\else{ }(#1)\fi.}]
+    }{
+    \hfill\counterproofqed\endtrivlist\@endpefalse
+}
+\makeatother
+
+\newtheoremstyle{slanted}
+    {\topsep}
+    {\topsep}
+    {\slshape}
+    {}
+    {\sffamily\bfseries\color{uhhblue}}
+    {.}
+    {.5em}
+    {}
+\newtheoremstyle{uhh}
+    {\topsep}
+    {\topsep}
+    {}
+    {}
+    {\sffamily\bfseries\color{uhhblue}}
+    {.}
+    {.5em}
+    {}
+\newtheorem{Theorem}{Theorem}[section]
+
+\theoremstyle{uhh}
+\newtheorem{lemma}[Theorem]{Lemma}
+\newtheorem{satz}[Theorem]{Satz}
+\newtheorem{korollar}[Theorem]{Korollar}
+\newtheorem{beispiel}[Theorem]{Beispiel}
+\newtheorem{theorem}[Theorem]{Theorem}
+
+\theoremstyle{slanted}
+\newtheorem{definition}[Theorem]{Definition}

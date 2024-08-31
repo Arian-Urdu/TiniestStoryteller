@@ -1,0 +1,25 @@
+% DIMENSIONS
+\RequirePackage[a4paper, margin= 2cm, top= 2.5cm, bottom= 2.25cm]{geometry}
+\RequirePackage{changepage}
+
+% linksbündiger Flattersatz
+% \usepackage{ragged2e}
+% \AtBeginDocument{\RaggedRight}
+
+% TEXT
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\linespread{1.3}
+
+% SECTION AND SUBSECTION STYLE
+\RequirePackage{titlesec}
+\titleformat{\section}{\color{uhhblue}\normalfont\sffamily\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\color{uhhblue}\normalfont\sffamily\large\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\color{uhhblue}\normalfont\sffamily\normalsize\bfseries}{\thesubsubsection}{1em}{}
+
+\titlespacing*{\section} {0pt}{6pt}{2pt}
+\titlespacing*{\subsection} {0pt}{4pt}{1pt}
+\titlespacing*{\subsubsection} {0pt}{2pt}{0pt}
+
+% ENUM
+\usepackage{enumitem}
