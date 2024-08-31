@@ -45,7 +45,7 @@ Example_output:
 
 ### Data
 
-Download the full preprocessed and filtered by llama dataset from: (TODO).
+Download the full dataset from: [Here](https://huggingface.co/datasets/roneneldan/TinyStories)
 
 Add downloaded files to data folder.
 
